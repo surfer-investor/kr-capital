@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에스티아이 (039440) 기업분석 리포트</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .hero {
+    background: linear-gradient(135deg, #1a2744 0%, #0d2137 40%, #091a2e 100%);
+    padding: 48px 40px 36px;
+    border-bottom: 2px solid #1f6feb;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle, rgba(31,111,235,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .hero-title h1 {
+    font-size: 2.6rem;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -1px;
+  }
+  .hero-title h1 span { color: #58a6ff; }
+  .hero-title p {
+    color: #8b949e;
+    font-size: 0.95rem;
+    margin-top: 6px;
+  }
+  .hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .badge-blue { background: rgba(31,111,235,0.25); color: #58a6ff; border: 1px solid #1f6feb; }
+  .badge-green { background: rgba(35,134,54,0.25); color: #3fb950; border: 1px solid #238636; }
+  .badge-orange { background: rgba(210,107,28,0.25); color: #f0883e; border: 1px solid #d2691c; }
+  .badge-purple { background: rgba(139,92,246,0.25); color: #c084fc; border: 1px solid #7c3aed; }
+  .badge-red { background: rgba(248,81,73,0.25); color: #ff7b72; border: 1px solid #da3633; }
+
+  .hero-stats {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .stat-box {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    min-width: 110px;
+  }
+  .stat-box .val {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #58a6ff;
+  }
+  .stat-box .val.up { color: #3fb950; }
+  .stat-box .val.warn { color: #f0883e; }
+  .stat-box .lbl {
+    font-size: 0.72rem;
+    color: #8b949e;
+    margin-top: 2px;
+  }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 1180px; margin: 0 auto; padding: 32px 24px; }
+
+  .section {
+    background: #161b22;
+    border: 1px solid #21262d;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title .icon {
+    width: 28px; height: 28px;
+    background: rgba(31,111,235,0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── CARD ── */
+  .card {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card-title {
+    font-size: 0.8rem;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #e6edf3;
+  }
+  .card-sub {
+    font-size: 0.78rem;
+    color: #8b949e;
+    margin-top: 4px;
+  }
+  .card-delta {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .delta-up { background: rgba(35,134,54,0.2); color: #3fb950; }
+  .delta-dn { background: rgba(248,81,73,0.2); color: #ff7b72; }
+
+  /* ── BAR CHARTS ── */
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .bar-label {
+    width: 140px;
+    font-size: 0.82rem;
+    color: #c9d1d9;
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .bar-track {
+    flex: 1;
+    height: 20px;
+    background: #21262d;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.8s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+  }
+  .bar-fill.blue { background: linear-gradient(90deg, #1f6feb, #58a6ff); }
+  .bar-fill.green { background: linear-gradient(90deg, #238636, #3fb950); }
+  .bar-fill.orange { background: linear-gradient(90deg, #d2691c, #f0883e); }
+  .bar-fill.purple { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+  .bar-fill.teal { background: linear-gradient(90deg, #0e7490, #22d3ee); }
+  .bar-fill.red { background: linear-gradient(90deg, #991b1b, #ff7b72); }
+  .bar-fill.sky { background: linear-gradient(90deg, #0284c7, #7dd3fc); }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th {
+    background: #21262d;
+    color: #8b949e;
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #30363d;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .dot-rating { letter-spacing: 2px; }
+  .dot-full { color: #58a6ff; }
+  .dot-empty { color: #30363d; }
+
+  /* ── TIMELINE ── */
+  .timeline-wrap { position: relative; padding: 0 0 0 20px; }
+  .timeline-item {
+    position: relative;
+    padding: 12px 0 12px 28px;
+    border-left: 2px solid #30363d;
+  }
+  .timeline-item:last-child { border-left: 2px dashed #30363d; }
+  .timeline-dot {
+    position: absolute;
+    left: -8px;
+    top: 16px;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: #161b22;
+  }
+  .tl-blue { border-color: #58a6ff; }
+  .tl-green { border-color: #3fb950; }
+  .tl-orange { border-color: #f0883e; }
+  .tl-purple { border-color: #c084fc; }
+  .timeline-date {
+    font-size: 0.72rem;
+    color: #8b949e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .timeline-content {
+    font-size: 0.88rem;
+    color: #c9d1d9;
+    margin-top: 3px;
+  }
+  .timeline-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  /* ── SCENARIO CARD ── */
+  .scenario {
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    border: 1px solid;
+  }
+  .scenario-bull { background: rgba(35,134,54,0.08); border-color: rgba(35,134,54,0.4); }
+  .scenario-bear { background: rgba(248,81,73,0.08); border-color: rgba(248,81,73,0.4); }
+  .scenario-base { background: rgba(210,107,28,0.08); border-color: rgba(210,107,28,0.4); }
+  .scenario-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .scenario-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 6px;
+    font-size: 0.84rem;
+    color: #c9d1d9;
+  }
+  .scenario-icon { width: 22px; flex-shrink: 0; }
+
+  /* ── INVESTMENT MATRIX ── */
+  .invest-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .invest-card {
+    border-radius: 12px;
+    padding: 18px 16px;
+    border: 1px solid;
+  }
+  .inv-short { background: rgba(88,166,255,0.08); border-color: rgba(88,166,255,0.35); }
+  .inv-mid { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.35); }
+  .inv-def { background: rgba(192,132,252,0.08); border-color: rgba(192,132,252,0.35); }
+  .invest-card h4 { font-size: 0.9rem; font-weight: 800; margin-bottom: 8px; }
+  .invest-card p { font-size: 0.8rem; color: #8b949e; margin-bottom: 10px; }
+  .invest-card ul { list-style: none; }
+  .invest-card li {
+    font-size: 0.82rem;
+    color: #c9d1d9;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .invest-card li:last-child { border-bottom: none; }
+
+  /* ── PRICE TARGET ── */
+  .price-target {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .pt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+    font-size: 0.85rem;
+  }
+  .pt-row:last-child { border-bottom: none; }
+  .pt-firm { color: #8b949e; }
+  .pt-price { font-weight: 700; color: #58a6ff; }
+  .pt-upside { font-weight: 600; color: #3fb950; }
+
+  /* ── MOMENTUM TABLE ── */
+  .momentum-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .momentum-item:last-child { border-bottom: none; }
+  .momentum-arrow {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .arrow-up { background: rgba(35,134,54,0.2); color: #3fb950; }
+  .arrow-dn { background: rgba(248,81,73,0.2); color: #ff7b72; }
+  .arrow-nu { background: rgba(88,166,255,0.2); color: #58a6ff; }
+  .momentum-text { font-size: 0.84rem; color: #c9d1d9; }
+  .momentum-text strong { color: #e6edf3; font-size: 0.87rem; }
+  .momentum-react {
+    font-size: 0.75rem;
+    color: #8b949e;
+    margin-top: 3px;
+  }
+
+  /* ── RADAR ── */
+  .radar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .radar-company {
+    width: 110px;
+    font-size: 0.82rem;
+    color: #c9d1d9;
+    flex-shrink: 0;
+  }
+  .radar-bars {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+  }
+  .radar-segment {
+    flex: 1;
+  }
+  .radar-label {
+    font-size: 0.68rem;
+    color: #8b949e;
+    margin-bottom: 3px;
+  }
+  .dot-bar {
+    display: flex;
+    gap: 2px;
+  }
+  .dot-b {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+  }
+  .dot-on-blue { background: #1f6feb; }
+  .dot-on-green { background: #238636; }
+  .dot-on-orange { background: #d2691c; }
+  .dot-off { background: #21262d; }
+
+  /* ── VALUECAHIN ASCII ── */
+  .vc-table {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #c9d1d9;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    line-height: 1.7;
+    white-space: pre;
+  }
+
+  /* ── FINANCIAL CHART ── */
+  .fin-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    height: 180px;
+    padding-bottom: 32px;
+    position: relative;
+    margin-top: 10px;
+  }
+  .fin-chart::after {
+    content: '';
+    position: absolute;
+    bottom: 28px;
+    left: 0; right: 0;
+    height: 1px;
+    background: #30363d;
+  }
+  .fin-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .fin-bars {
+    display: flex;
+    gap: 4px;
+    align-items: flex-end;
+    height: calc(100% - 24px);
+    width: 100%;
+    justify-content: center;
+  }
+  .fin-bar {
+    width: 26px;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    transition: opacity 0.2s;
+  }
+  .fin-bar:hover { opacity: 0.85; }
+  .fin-bar-rev { background: linear-gradient(180deg, #1f6feb, #0d1117); }
+  .fin-bar-op { background: linear-gradient(180deg, #3fb950, #0d1117); }
+  .fin-year {
+    font-size: 0.72rem;
+    color: #8b949e;
+    text-align: center;
+    margin-top: 6px;
+  }
+  .fin-val {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    color: #8b949e;
+    white-space: nowrap;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: #8b949e;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+
+  /* ── RISK TABLE ── */
+  .risk-level {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .risk-high { background: rgba(248,81,73,0.2); color: #ff7b72; }
+  .risk-mid { background: rgba(210,107,28,0.2); color: #f0883e; }
+  .risk-low { background: rgba(63,185,80,0.2); color: #3fb950; }
+
+  /* ── PRICE TARGET GAUGE ── */
+  .gauge-wrap {
+    position: relative;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .gauge-bar-wrap {
+    width: 100%;
+    height: 28px;
+    background: #21262d;
+    border-radius: 14px;
+    position: relative;
+    overflow: visible;
+  }
+  .gauge-range {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(248,81,73,0.4), rgba(63,185,80,0.4));
+    border-radius: 14px;
+  }
+  .gauge-current {
+    position: absolute;
+    height: 40px;
+    width: 3px;
+    background: #fff;
+    top: -6px;
+    border-radius: 2px;
+  }
+  .gauge-current::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    background: #30363d;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .gauge-target {
+    position: absolute;
+    height: 40px;
+    width: 3px;
+    top: -6px;
+    border-radius: 2px;
+  }
+  .gauge-target::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.68rem;
+    font-weight: 700;
+    white-space: nowrap;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .gauge-min-lbl, .gauge-max-lbl {
+    position: absolute;
+    bottom: -20px;
+    font-size: 0.7rem;
+    color: #8b949e;
+  }
+  .gauge-min-lbl { left: 0; }
+  .gauge-max-lbl { right: 0; }
+
+  /* ── FOLLOW-UP TABLE ── */
+  .followup-item {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .followup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .followup-title { font-size: 0.88rem; font-weight: 700; color: #e6edf3; }
+  .followup-freq {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(88,166,255,0.15);
+    color: #58a6ff;
+    font-weight: 600;
+  }
+  .followup-detail { font-size: 0.8rem; color: #8b949e; }
+
+  .divider { border: none; border-top: 1px solid #21262d; margin: 20px 0; }
+
+  /* ── INSIGHT BOX ── */
+  .insight-box {
+    background: rgba(31,111,235,0.08);
+    border: 1px solid rgba(31,111,235,0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 0.85rem;
+    color: #c9d1d9;
+    margin-top: 16px;
+  }
+  .insight-box strong { color: #58a6ff; }
+
+  /* ── COMPANY PROFILE ── */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 28px;
+    font-size: 0.84rem;
+  }
+  .profile-row {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+  }
+  .profile-key { color: #8b949e; width: 110px; flex-shrink: 0; }
+  .profile-val { color: #c9d1d9; font-weight: 500; }
+
+  .footnote {
+    font-size: 0.72rem;
+    color: #6e7681;
+    margin-top: 10px;
+    border-top: 1px solid #21262d;
+    padding-top: 10px;
+  }
+
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .invest-grid { grid-template-columns: 1fr; }
+    .hero-top { flex-direction: column; }
+    .hero-stats { gap: 12px; }
+    .bar-label { width: 100px; font-size: 0.75rem; }
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<div class="hero">
+  <div class="hero-top">
+    <div class="hero-title">
+      <h1>에스티아이 <span>STI</span></h1>
+      <p>종목코드: 039440 · KOSDAQ · 반도체 장비</p>
+      <div class="hero-badges">
+        <span class="badge badge-blue">CCSS 국내 1위</span>
+        <span class="badge badge-green">HBM 수혜</span>
+        <span class="badge badge-orange">전력반도체 신규진출</span>
+        <span class="badge badge-purple">마이크론 싱가포르 수주</span>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-box">
+        <div class="val">~35,000<span style="font-size:0.9rem">원</span></div>
+        <div class="lbl">현재 주가 (추정)</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">~2,900<span style="font-size:0.9rem">억</span></div>
+        <div class="lbl">시가총액</div>
+      </div>
+      <div class="stat-box">
+        <div class="val up">12×</div>
+        <div class="lbl">PER (2025E)</div>
+      </div>
+      <div class="stat-box">
+        <div class="val">1.09×</div>
+        <div class="lbl">PBR</div>
+      </div>
+      <div class="stat-box">
+        <div class="val warn">38,000</div>
+        <div class="lbl">컨센 목표주가</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.75rem;color:#6e7681;margin-top:16px;">기준: 2026.04.17 · 전망치는 증권사 컨센서스 기준 · 본 리포트는 투자 참고용이며 투자 결정의 책임은 투자자 본인에게 있습니다.</p>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════ 1. 기업 개요 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">🏢</div> 기업 개요</div>
+  <div class="profile-grid">
+    <div>
+      <div class="profile-row"><span class="profile-key">설립</span><span class="profile-val">1997년 (창업 29년)</span></div>
+      <div class="profile-row"><span class="profile-key">상장</span><span class="profile-val">KOSDAQ (039440)</span></div>
+      <div class="profile-row"><span class="profile-key">주요 사업</span><span class="profile-val">반도체·FPD 전공정 장비</span></div>
+      <div class="profile-row"><span class="profile-key">핵심 제품</span><span class="profile-val">CCSS · Wet System · Reflow</span></div>
+    </div>
+    <div>
+      <div class="profile-row"><span class="profile-key">주요 고객사</span><span class="profile-val">삼성전자, SK하이닉스, 마이크론</span></div>
+      <div class="profile-row"><span class="profile-key">최대주주</span><span class="profile-val">성도이엔지 외 27.07%</span></div>
+      <div class="profile-row"><span class="profile-key">기관주주</span><span class="profile-val">국민연금공단 6.26%</span></div>
+      <div class="profile-row"><span class="profile-key">발행주식수</span><span class="profile-val">약 1,583만 주</span></div>
+    </div>
+    <div>
+      <div class="profile-row"><span class="profile-key">해외 수주</span><span class="profile-val">마이크론 싱가포르 (2026.01)</span></div>
+      <div class="profile-row"><span class="profile-key">해외 수주②</span><span class="profile-val">중국 NTS 978억 (2025.12)</span></div>
+    </div>
+    <div>
+      <div class="profile-row"><span class="profile-key">CCSS 시장 지위</span><span class="profile-val">국내 1위 (수출 포함)</span></div>
+      <div class="profile-row"><span class="profile-key">경쟁사</span><span class="profile-val">한양이엔지, 씨앤지하이테크, 오션브릿지</span></div>
+    </div>
+  </div>
+  <div class="insight-box">
+    <strong>시장의 시각:</strong> 에스티아이는 "CCSS 국내 1위 + HBM 사이클 직접 수혜주"로 인식되며, 2025년 12월 전력반도체 장비 수주(978억) 공시 이후 소부장 최선호주로 부각. 2026년은 마이크론 싱가포르 프로젝트 본격화 및 전력반도체 양산 준비(2027) 등 신규 모멘텀이 겹치는 구간으로 평가됨.
+  </div>
+</div>
+
+<!-- ═══════════════════════ 2. 밸류체인 맵 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">🗺️</div> 밸류체인 맵 — 반도체 팹 인프라 장비</div>
+  <div class="vc-table">┌──────────────────────────────────────────────────────────────────────┐
+│           반도체 팹 인프라 CCSS / 후공정 패키징 밸류체인 맵           │
+├────────────────────┬──────────────────────┬──────────────────────────┤
+│   상류 (소재·부품)  │  직접 플레이어 (장비)  │     하류 (팹 고객사)      │
+│  화학약품/밸브/배관  │ CCSS · Wet · Reflow  │  메모리 · 파운드리 팹     │
+├────────────────────┼──────────────────────┼──────────────────────────┤
+│  화학약품 공급사    │  ★ 에스티아이        │  삼성전자 (메모리·파운드리)│
+│  솔더볼 소재사      │    한양이엔지         │  SK하이닉스 (HBM·DRAM)   │
+│  밸브·배관 부품사   │    씨앤지하이테크     │  마이크론 (NAND·HBM)     │
+│  반도체 자동화      │    오션브릿지         │  중국 SiC 파워반도체 팹   │
+│  (로봇·센서)        │    원익머트리얼즈     │  (NTS · NovaTech)        │
+└────────────────────┴──────────────────────┴──────────────────────────┘
+
+  수요 Driver: AI·데이터센터 → HBM 수요 폭증 → 팹 CAPEX 확대 → 인프라 장비 발주↑
+  에스티아이 포지션: 팹 건설 초기(CCSS) → 웨이퍼 공정(Wet) → 패키징(Reflow) 전 단계 커버</div>
+</div>
+
+<!-- ═══════════════════════ 3. 사업 구조 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">📊</div> 사업 포트폴리오 — 매출 비중 (2024년 기준)</div>
+
+  <div class="grid-2">
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">제품별 매출 비중</p>
+      <div class="bar-row">
+        <div class="bar-label">CCSS</div>
+        <div class="bar-track"><div class="bar-fill blue" style="width:85.6%">85.6%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Wet System</div>
+        <div class="bar-track"><div class="bar-fill green" style="width:8.6%">8.6%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Reflow·기타</div>
+        <div class="bar-track"><div class="bar-fill orange" style="width:5.8%">5.8%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">전력반도체 장비</div>
+        <div class="bar-track"><div class="bar-fill purple" style="width:2%;opacity:0.6">신규</div></div>
+      </div>
+      <p class="footnote">* Reflow 매출은 2026E +153% 성장 전망 → 비중 10~15%로 확대 예상</p>
+    </div>
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">경쟁사 CCSS 시장 점유율 비교</p>
+      <div class="bar-row">
+        <div class="bar-label">★ 에스티아이</div>
+        <div class="bar-track"><div class="bar-fill blue" style="width:40%">~40%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">한양이엔지</div>
+        <div class="bar-track"><div class="bar-fill teal" style="width:40%">~40%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">씨앤지하이테크</div>
+        <div class="bar-track"><div class="bar-fill orange" style="width:10%">10%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">오션브릿지</div>
+        <div class="bar-track"><div class="bar-fill sky" style="width:10%">10%</div></div>
+      </div>
+      <p class="footnote">* 수출 포함 시 에스티아이가 국내 1위 (마이크론·해외 팹 공급 실적)</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- PRODUCT DETAIL -->
+  <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">주요 제품 설명</p>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">CCSS</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.6;">
+        중앙화학약품공급시스템. 반도체 팹에서 사용하는 각종 화학약품을 원격 자동 공급. 팹 신설·증설 시 필수 인프라. 에스티아이는 ACQC(자동품질제어) 업계 최초 적용으로 기술 차별화.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Wet System (세정·식각)</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.6;">
+        반도체 전공정 습식세정·식각 장비. HBM 공정에서 수요 급증. 클린룸 인프라 투자 확대 수혜. 고객사 맞춤형 턴키 공급 전략으로 수익성 개선 추진.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Reflow (무연납 진공)</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.6;">
+        반도체 후공정 패키징용 LFVR 장비. 솔더볼 리플로우 시 공기 기포(Void) 최소화. SK하이닉스 HBM 후공정 수주(2021~). 2026E 매출 +153% 성장 전망.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 4. 재무 실적 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">💰</div> 재무 실적 & 전망 (연결 기준)</div>
+
+  <!-- 실적 바 차트 -->
+  <p style="font-size:0.8rem;color:#8b949e;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">매출액 vs 영업이익 추이</p>
+  <div style="overflow-x:auto;">
+  <div style="min-width:480px;">
+  <div class="fin-chart">
+    <!-- 2022 -->
+    <div class="fin-col">
+      <div class="fin-bars">
+        <div class="fin-bar fin-bar-rev" style="height:30%"><span class="fin-val">1,697억</span></div>
+        <div class="fin-bar fin-bar-op" style="height:11%"><span class="fin-val">89억</span></div>
+      </div>
+      <div class="fin-year">2022A</div>
+    </div>
+    <!-- 2023 -->
+    <div class="fin-col">
+      <div class="fin-bars">
+        <div class="fin-bar fin-bar-rev" style="height:33%"><span class="fin-val">3,197억</span></div>
+        <div class="fin-bar fin-bar-op" style="height:10%"><span class="fin-val">239억</span></div>
+      </div>
+      <div class="fin-year">2023A</div>
+    </div>
+    <!-- 2024 -->
+    <div class="fin-col">
+      <div class="fin-bars">
+        <div class="fin-bar fin-bar-rev" style="height:35%"><span class="fin-val">3,340억</span></div>
+        <div class="fin-bar fin-bar-op" style="height:12%"><span class="fin-val">273억</span></div>
+      </div>
+      <div class="fin-year">2024A</div>
+    </div>
+    <!-- 2025E -->
+    <div class="fin-col">
+      <div class="fin-bars">
+        <div class="fin-bar fin-bar-rev" style="height:50%;opacity:0.8"><span class="fin-val">4,707억E</span></div>
+        <div class="fin-bar fin-bar-op" style="height:23%;opacity:0.8"><span class="fin-val">539억E</span></div>
+      </div>
+      <div class="fin-year">2025E</div>
+    </div>
+    <!-- 2026E -->
+    <div class="fin-col">
+      <div class="fin-bars">
+        <div class="fin-bar fin-bar-rev" style="height:70%;opacity:0.65"><span class="fin-val">6,562억E</span></div>
+        <div class="fin-bar fin-bar-op" style="height:44%;opacity:0.65"><span class="fin-val">1,014억E</span></div>
+      </div>
+      <div class="fin-year">2026E</div>
+    </div>
+  </div>
+  <div class="chart-legend">
+    <span><span class="legend-dot" style="background:#1f6feb;"></span>매출액</span>
+    <span><span class="legend-dot" style="background:#238636;"></span>영업이익</span>
+    <span style="color:#6e7681;">* E = 증권사 컨센서스 추정치. 막대 높이는 상대 비교용 (최대=6,562억 기준)</span>
+  </div>
+  </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 핵심 지표 카드 -->
+  <div class="grid-3" style="margin-top:4px;">
+    <div class="card">
+      <div class="card-title">2024 실적 (확정)</div>
+      <div class="card-value">3,340억</div>
+      <div class="card-sub">매출액</div>
+      <div class="card-delta delta-up">+4.6% YoY</div>
+      <hr style="border:none;border-top:1px solid #21262d;margin:10px 0;">
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익: <strong>273억</strong> (+14% YoY)</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익률: <strong>8.2%</strong></div>
+    </div>
+    <div class="card">
+      <div class="card-title">2025E 전망</div>
+      <div class="card-value">4,707억</div>
+      <div class="card-sub">매출액 (컨센서스)</div>
+      <div class="card-delta delta-up">+40.9% YoY</div>
+      <hr style="border:none;border-top:1px solid #21262d;margin:10px 0;">
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익: <strong>539억</strong> (+97.6% YoY)</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익률: <strong>11.5%</strong></div>
+    </div>
+    <div class="card">
+      <div class="card-title">2026E 전망</div>
+      <div class="card-value">6,562억</div>
+      <div class="card-sub">매출액 (컨센서스)</div>
+      <div class="card-delta delta-up">+39.4% YoY</div>
+      <hr style="border:none;border-top:1px solid #21262d;margin:10px 0;">
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익: <strong>1,014억</strong> (+88% YoY)</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;">영업이익률: <strong>15.5%</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 5. 밸류에이션 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">📐</div> 밸류에이션 & 목표주가</div>
+  <div class="grid-2">
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">밸류에이션 지표</p>
+      <div class="bar-row">
+        <div class="bar-label">PER (2025E 12×)</div>
+        <div class="bar-track"><div class="bar-fill blue" style="width:40%">12×</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">PBR (1.09×)</div>
+        <div class="bar-track"><div class="bar-fill green" style="width:20%">1.09×</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">ROE (9.05%)</div>
+        <div class="bar-track"><div class="bar-fill orange" style="width:18%">9.1%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">영업이익률(2026E)</div>
+        <div class="bar-track"><div class="bar-fill purple" style="width:30%">15.5%</div></div>
+      </div>
+      <div class="insight-box" style="margin-top:14px;">
+        <strong>밸류에이션 평가:</strong> 동종 반도체 장비 업종 대비 PER 5~12배 수준으로 여전히 저평가 구간. 2026년 영업이익 1,000억 돌파 시 현재 시가총액(약 2,900억) 대비 P/OI 약 2.9배 → 추가 리레이팅 여지 충분.
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">증권사 목표주가 현황</p>
+      <div class="price-target">
+        <div class="pt-row">
+          <span class="pt-firm">다올투자증권</span>
+          <span class="pt-price">43,000원</span>
+          <span class="pt-upside">매수 ↑ (소부장 최선호)</span>
+        </div>
+        <div class="pt-row">
+          <span class="pt-firm">신한투자증권</span>
+          <span class="pt-price">34,000원</span>
+          <span class="pt-upside">매수 (반등 전 매수)</span>
+        </div>
+        <div class="pt-row">
+          <span class="pt-firm">기타 (최고)</span>
+          <span class="pt-price">49,000원</span>
+          <span class="pt-upside" style="color:#f0883e;">상단</span>
+        </div>
+        <div class="pt-row">
+          <span class="pt-firm">컨센서스 평균</span>
+          <span class="pt-price">38,000원</span>
+          <span class="pt-upside">+8~+40% 상승여력</span>
+        </div>
+      </div>
+
+      <!-- 주가 게이지 -->
+      <p style="font-size:0.78rem;color:#8b949e;margin-top:18px;margin-bottom:8px;">현재주가 vs 목표주가 범위 (27,000 ~ 49,000원)</p>
+      <div style="position:relative;padding:0 0 28px;">
+        <div style="width:100%;height:24px;background:#21262d;border-radius:12px;overflow:hidden;position:relative;">
+          <div style="position:absolute;height:100%;left:18%;width:64%;background:linear-gradient(90deg,rgba(248,81,73,0.3),rgba(63,185,80,0.45));border-radius:12px;"></div>
+          <!-- 현재가 ~35,000 → (35000-27000)/(49000-27000) = 8/22 = 36% -->
+          <div style="position:absolute;height:100%;left:36%;width:3px;background:#fff;"></div>
+          <!-- 컨센 38,000 → (38000-27000)/22000 = 50% -->
+          <div style="position:absolute;height:100%;left:50%;width:3px;background:#3fb950;"></div>
+          <!-- 다올 43,000 → (43000-27000)/22000 = 72% -->
+          <div style="position:absolute;height:100%;left:72%;width:3px;background:#f0883e;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:#8b949e;margin-top:6px;">
+          <span>27,000 (최저)</span>
+          <span style="color:#fff;">★ ~35,000 (현재)</span>
+          <span style="color:#3fb950;">38,000 (컨센)</span>
+          <span style="color:#f0883e;">43,000 (다올)</span>
+          <span>49,000 (최고)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <!-- 간단 목표주가 계산 -->
+  <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">간단 목표주가 산출 (Bottom-up)</p>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">PER 방식</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.8;">
+        2026E EPS ≈ 4,000~5,000원<br>
+        타겟 PER 10×<br>
+        <strong style="color:#58a6ff;">→ 목표주가 40,000~50,000원</strong>
+      </div>
+      <div class="card-delta delta-up">+14~+43% 상승여력</div>
+    </div>
+    <div class="card">
+      <div class="card-title">EV/EBITDA 방식</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.8;">
+        2026E EBITDA ≈ 1,200억<br>
+        타겟 멀티플 4~5×<br>
+        <strong style="color:#58a6ff;">→ 목표주가 38,000~46,000원</strong>
+      </div>
+      <div class="card-delta delta-up">+9~+31% 상승여력</div>
+    </div>
+    <div class="card">
+      <div class="card-title">PBR 방식</div>
+      <div style="font-size:0.82rem;color:#c9d1d9;line-height:1.8;">
+        BPS ≈ 32,000원 (2026E)<br>
+        타겟 PBR 1.3~1.5×<br>
+        <strong style="color:#58a6ff;">→ 목표주가 41,600~48,000원</strong>
+      </div>
+      <div class="card-delta delta-up">+19~+37% 상승여력</div>
+    </div>
+  </div>
+  <div class="insight-box" style="margin-top:14px;">
+    <strong>종합:</strong> 세 방법 모두 <strong>38,000~50,000원</strong> 밴드 수렴. 합리적 목표주가 <strong>43,000원</strong> (다올 컨센 기준), 상단 시나리오 <strong>49,000원</strong>. 현재주가 ~35,000원 대비 <strong>+23~+40% 업사이드</strong>.
+  </div>
+</div>
+
+<!-- ═══════════════════════ 6. 수혜 타임라인 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">⏱️</div> 수혜 타임라인 & 팔로우업 지표</div>
+  <div class="grid-2">
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">주요 이벤트 타임라인</p>
+      <div class="timeline-wrap">
+        <div class="timeline-item">
+          <div class="timeline-dot tl-green"></div>
+          <div class="timeline-date">2025년 3Q 누적 (확인)</div>
+          <div class="timeline-content">매출 +19.4%, 영업이익 +44.5% YoY 성장 확인 <span class="timeline-tag" style="background:rgba(63,185,80,0.2);color:#3fb950;">완료</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-blue"></div>
+          <div class="timeline-date">2025.12 (완료)</div>
+          <div class="timeline-content">중국 NTS 전력반도체 장비 978억원 수주 <span class="timeline-tag" style="background:rgba(88,166,255,0.2);color:#58a6ff;">수주확정</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-blue"></div>
+          <div class="timeline-date">2026.01 (완료)</div>
+          <div class="timeline-content">마이크론 싱가포르 팹 기공식 참석 · 협력 확대 논의 (35조 프로젝트) <span class="timeline-tag" style="background:rgba(88,166,255,0.2);color:#58a6ff;">해외수주</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-orange"></div>
+          <div class="timeline-date">2026 상반기 (예정)</div>
+          <div class="timeline-content">삼성전자·SK하이닉스 HBM4 양산 → CCSS·Reflow 수주 본격화</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-orange"></div>
+          <div class="timeline-date">2026~2027 (예정)</div>
+          <div class="timeline-content">SK하이닉스 용인 클러스터 착공 → CCSS 대규모 발주 기대</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-purple"></div>
+          <div class="timeline-date">2027 하반기 (예정)</div>
+          <div class="timeline-content">중국 NTS 전력반도체 양산 시작 → 978억 계약 매출 인식 <span class="timeline-tag" style="background:rgba(192,132,252,0.2);color:#c084fc;">장기</span></div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot tl-purple"></div>
+          <div class="timeline-date">2028 하반기 (예정)</div>
+          <div class="timeline-content">마이크론 싱가포르 웨이퍼 생산 시작 → 후속 장비 수주 기회</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">팔로우업 모니터링 지표</p>
+      <div class="followup-item">
+        <div class="followup-header">
+          <span class="followup-title">삼성전자·SK하이닉스 CAPEX 가이던스</span>
+          <span class="followup-freq">분기마다</span>
+        </div>
+        <div class="followup-detail">양사 실적발표 시 설비투자 계획 변화 확인 → CCSS 발주량 선행지표. 삼성 HBM 수율 개선 속도도 주목.</div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-header">
+          <span class="followup-title">에스티아이 신규 수주 공시</span>
+          <span class="followup-freq">실시간</span>
+        </div>
+        <div class="followup-detail">DART 공시 확인. 단일판매·공급계약 체결(매출 5% 이상) 시 주가 단기 급등 촉매 → 즉각 대응 필요.</div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-header">
+          <span class="followup-title">분기 실적 (영업이익률)</span>
+          <span class="followup-freq">분기마다</span>
+        </div>
+        <div class="followup-detail">2025년 순이익이 영업이익 대비 감소 추세 (금융비용·세금). 2026E 영업이익률 15% 달성 여부 핵심 체크포인트.</div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-header">
+          <span class="followup-title">Reflow 매출 성장률</span>
+          <span class="followup-freq">분기마다</span>
+        </div>
+        <div class="followup-detail">HBM 후공정 수요 증가 핵심 지표. 2026E +153% 달성 여부. SK하이닉스·삼성 HBM4 양산 일정 연동.</div>
+      </div>
+      <div class="followup-item">
+        <div class="followup-header">
+          <span class="followup-title">미중 반도체 수출 규제</span>
+          <span class="followup-freq">수시</span>
+        </div>
+        <div class="followup-detail">중국 NTS 978억 수주 관련. 미국 수출 통제(EAR) 변화 모니터링. 중국향 매출 차질 시 2026 실적 하향 조정 불가피.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 7. 주가 촉매 & 비교 매트릭스 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">⚡</div> 주가 촉매 (상승·하락) & 뉴스 반응</div>
+  <div class="grid-2">
+    <div>
+      <p style="font-size:0.8rem;color:#3fb950;margin-bottom:10px;font-weight:700;">▲ 상승 촉매</p>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-up">▲</div>
+        <div>
+          <div class="momentum-text"><strong>신규 수주 공시</strong></div>
+          <div class="momentum-react">2025.12 NTS 978억 수주 → 다음날 +8~9% 급등 / 2026.02 삼성 394억 수주 + HBM 기대 → 장중 +18.9%</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-up">▲</div>
+        <div>
+          <div class="momentum-text"><strong>고객사 HBM 생산 확대 뉴스</strong></div>
+          <div class="momentum-react">삼성·SK하이닉스 HBM4 양산 일정 당겨질 때마다 반도체 장비 업종 동반 상승</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-up">▲</div>
+        <div>
+          <div class="momentum-text"><strong>팹 건설·CAPEX 발표</strong></div>
+          <div class="momentum-react">SK하이닉스 용인 착공, 마이크론 싱가포르 35조 투자 확정 시 CCSS 수요 전망 상향</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-up">▲</div>
+        <div>
+          <div class="momentum-text"><strong>실적 서프라이즈</strong></div>
+          <div class="momentum-react">2025Q3 예상치 상회 → 주가 상승. 분기 실적 발표 전 매수 전략 유효</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-up">▲</div>
+        <div>
+          <div class="momentum-text"><strong>소부장 정책 지원</strong></div>
+          <div class="momentum-react">국내 반도체 소부장 지원 정책 강화 시 수혜 기대감 상승</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.8rem;color:#ff7b72;margin-bottom:10px;font-weight:700;">▼ 하락 촉매</p>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-dn">▼</div>
+        <div>
+          <div class="momentum-text"><strong>엔비디아·AI 섹터 조정</strong></div>
+          <div class="momentum-react">글로벌 AI 투자 우려 → 반도체 장비 업종 동반 하락 (-6.5% 사례 있음)</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-dn">▼</div>
+        <div>
+          <div class="momentum-text"><strong>삼성전자 CAPEX 삭감</strong></div>
+          <div class="momentum-react">삼성전자 설비투자 축소 발표 시 CCSS·Wet 수주 전망 하향 → 즉각 주가 조정</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-dn">▼</div>
+        <div>
+          <div class="momentum-text"><strong>미국 대중 수출 규제 강화</strong></div>
+          <div class="momentum-react">중국 NTS 978억 수주 차질 우려. 매출의 29% 해당 → 단기 실적 불확실성 확대</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-dn">▼</div>
+        <div>
+          <div class="momentum-text"><strong>실적 미스 (순이익 감소)</strong></div>
+          <div class="momentum-react">2025Q2 순이익 -48% YoY 실망 → 주가 횡보. 금융비용·이연세금 부담 지속 여부 주시</div>
+        </div>
+      </div>
+      <div class="momentum-item">
+        <div class="momentum-arrow arrow-dn">▼</div>
+        <div>
+          <div class="momentum-text"><strong>경쟁 심화 (한양이엔지 공세)</strong></div>
+          <div class="momentum-react">CCSS 시장 가격 경쟁 심화 시 마진 압박. 한양이엔지 해외 수주 증가 소식에 시장 점유율 우려</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 8. 4축 분석 & 비교 매트릭스 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">🧩</div> 경쟁사 비교 매트릭스 (4축 분석)</div>
+
+  <!-- 레이더 차트 텍스트 버전 -->
+  <div class="grid-2" style="margin-bottom:20px;">
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">방어 ↔ 공격 포지셔닝</p>
+      <div class="radar-row">
+        <div class="radar-company">★ 에스티아이</div>
+        <div class="radar-bars">
+          <div class="radar-segment">
+            <div class="radar-label">방어력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">공격력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">수출다각화</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-orange"></div><div class="dot-b dot-on-orange"></div><div class="dot-b dot-on-orange"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">신사업기회</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="radar-row">
+        <div class="radar-company">한양이엔지</div>
+        <div class="radar-bars">
+          <div class="radar-segment">
+            <div class="radar-label">방어력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">공격력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">수출다각화</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-orange"></div><div class="dot-b dot-on-orange"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">신사업기회</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="radar-row">
+        <div class="radar-company">씨앤지하이테크</div>
+        <div class="radar-bars">
+          <div class="radar-segment">
+            <div class="radar-label">방어력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-blue"></div><div class="dot-b dot-on-blue"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">공격력</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">수출다각화</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-orange"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+          <div class="radar-segment">
+            <div class="radar-label">신사업기회</div>
+            <div class="dot-bar">
+              <div class="dot-b dot-on-green"></div><div class="dot-b dot-on-green"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div><div class="dot-b dot-off"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비교 매트릭스 테이블 -->
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">핵심 변수 비교 매트릭스</p>
+      <table>
+        <thead>
+          <tr>
+            <th>기업</th>
+            <th>HBM 노출</th>
+            <th>수혜 시차</th>
+            <th>방어력</th>
+            <th>공격력</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:#58a6ff;">★ 에스티아이</strong></td>
+            <td><span class="dot-rating"><span class="dot-full">●●●●</span><span class="dot-empty">○</span></span></td>
+            <td>즉각~단기</td>
+            <td><span class="dot-rating"><span class="dot-full">●●●●</span><span class="dot-empty">○</span></span></td>
+            <td><span class="dot-rating"><span class="dot-full">●●●●●</span></span></td>
+          </tr>
+          <tr>
+            <td>한양이엔지</td>
+            <td><span class="dot-rating"><span class="dot-full">●●●</span><span class="dot-empty">○○</span></span></td>
+            <td>즉각</td>
+            <td><span class="dot-rating"><span class="dot-full">●●●●●</span></span></td>
+            <td><span class="dot-rating"><span class="dot-full">●●●</span><span class="dot-empty">○○</span></span></td>
+          </tr>
+          <tr>
+            <td>씨앤지하이테크</td>
+            <td><span class="dot-rating"><span class="dot-full">●●</span><span class="dot-empty">○○○</span></span></td>
+            <td>단기</td>
+            <td><span class="dot-rating"><span class="dot-full">●●</span><span class="dot-empty">○○○</span></span></td>
+            <td><span class="dot-rating"><span class="dot-full">●●●</span><span class="dot-empty">○○</span></span></td>
+          </tr>
+          <tr>
+            <td>오션브릿지</td>
+            <td><span class="dot-rating"><span class="dot-full">●●</span><span class="dot-empty">○○○</span></span></td>
+            <td>단기</td>
+            <td><span class="dot-rating"><span class="dot-full">●●</span><span class="dot-empty">○○○</span></span></td>
+            <td><span class="dot-rating"><span class="dot-full">●●</span><span class="dot-empty">○○○</span></span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="insight-box" style="margin-top:14px;">
+        <strong>에스티아이 vs 경쟁사:</strong> 수출 다각화(마이크론·중국) + 전력반도체 신규진출로 <strong>성장 옵션 가장 풍부</strong>. 한양이엔지는 방어형(내수 1위), 에스티아이는 <strong>공격적 확장형</strong>으로 차별화.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 9. 시나리오 카드 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">🎲</div> 시나리오 분석 (3가지)</div>
+
+  <div class="scenario scenario-bull">
+    <div class="scenario-title" style="color:#3fb950;">🟢 강세 시나리오 — AI CAPEX 슈퍼사이클 + HBM4 양산 가속</div>
+    <div class="scenario-row"><span class="scenario-icon">🏆</span><span><strong>최대 수혜: 에스티아이</strong> — CCSS·Reflow 수주 폭증. 2026E 매출 7,000억+, 영업이익 1,200억+. 주가 49,000원↑ 도달</span></div>
+    <div class="scenario-row"><span class="scenario-icon">📈</span><span>삼성전자·SK하이닉스 설비투자 각각 20%+ 상향 → 팹 인프라 업체 전반 수혜</span></div>
+    <div class="scenario-row"><span class="scenario-icon">📈</span><span>마이크론 싱가포르 착공 본격화 → 에스티아이 해외 수주 추가 확보</span></div>
+    <div class="scenario-row"><span class="scenario-icon">⚠️</span><span>리스크: 과열 시 밸류에이션 고평가 부담, 조정 변동성 확대</span></div>
+    <div style="margin-top:10px;font-size:0.8rem;color:#3fb950;font-weight:700;">확률: 35% | 목표주가: 49,000원~55,000원</div>
+  </div>
+
+  <div class="scenario scenario-base">
+    <div class="scenario-title" style="color:#f0883e;">🟡 기본 시나리오 — 점진적 성장 (컨센서스)</div>
+    <div class="scenario-row"><span class="scenario-icon">📊</span><span><strong>에스티아이</strong> — 2026E 매출 6,562억, 영업이익 1,014억 달성. 주가 38,000~43,000원 수렴</span></div>
+    <div class="scenario-row"><span class="scenario-icon">📈</span><span>HBM4 수요 꾸준한 증가, CCSS 수주 안정적 성장</span></div>
+    <div class="scenario-row"><span class="scenario-icon">🛡️</span><span>중국 NTS 수주 차질 없이 진행, 전력반도체 장비 납품 착실히 이행</span></div>
+    <div style="margin-top:10px;font-size:0.8rem;color:#f0883e;font-weight:700;">확률: 45% | 목표주가: 38,000~43,000원</div>
+  </div>
+
+  <div class="scenario scenario-bear">
+    <div class="scenario-title" style="color:#ff7b72;">🔴 약세 시나리오 — 수출 규제 강화 + 삼성 CAPEX 삭감</div>
+    <div class="scenario-row"><span class="scenario-icon">⚠️</span><span><strong>최대 피해: 에스티아이</strong> — 중국향 978억 수주 차질 + 삼성 CAPEX 축소 → 2026E 매출 5,000억 이하 하향</span></div>
+    <div class="scenario-row"><span class="scenario-icon">📉</span><span>미중 무역전쟁 격화 → 반도체 장비 대중 수출 규제 강화 시 계약 이행 불확실</span></div>
+    <div class="scenario-row"><span class="scenario-icon">🛡️</span><span>방어: 삼성·SK 기존 수주 잔고로 CCSS 베이스라인 유지. 한양이엔지 대비 해외 익스포저 더 큼</span></div>
+    <div class="scenario-row"><span class="scenario-icon">📉</span><span>주가 하단: 27,000~30,000원 (PBR 0.85× 수준)</span></div>
+    <div style="margin-top:10px;font-size:0.8rem;color:#ff7b72;font-weight:700;">확률: 20% | 목표주가: 27,000~32,000원</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 10. 투자 판단 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">💡</div> 투자 판단 & 성향별 매칭</div>
+  <div class="invest-grid">
+    <div class="invest-card inv-short">
+      <h4 style="color:#58a6ff;">⚡ 단기 트레이딩 (1~3개월)</h4>
+      <p>수주 공시 이벤트 드리븐 전략</p>
+      <ul>
+        <li>신규 수주 공시 → 당일 매수 전략 유효</li>
+        <li>삼성·SK 실적발표 전 포지션 선취</li>
+        <li>뉴스 민감도 매우 높음</li>
+        <li>조정 시 분할 매수 기회 활용</li>
+        <li>진입: 33,000~35,000원대 지지 확인 후</li>
+      </ul>
+    </div>
+    <div class="invest-card inv-mid">
+      <h4 style="color:#3fb950;">📈 중장기 보유 (6개월~1년)</h4>
+      <p>HBM 사이클 + 전력반도체 진출 베팅</p>
+      <ul>
+        <li>2026E 실적 턴어라운드 확인 후 보유</li>
+        <li>마이크론 싱가포르 수주 확정 시 리레이팅</li>
+        <li>목표: 43,000원 (다올 컨센)</li>
+        <li>2026 영업이익 1,000억 돌파 = 추가 상승</li>
+        <li>관심종목 편입: ✅ 추천</li>
+      </ul>
+    </div>
+    <div class="invest-card inv-def">
+      <h4 style="color:#c084fc;">🛡️ 리스크 관리형</h4>
+      <p>하방 대비 조건부 매수</p>
+      <ul>
+        <li>중국 수출 규제 리스크 해소 확인 후 진입</li>
+        <li>분기 순이익 회복 추세 확인 필수</li>
+        <li>PBR 1.0× (32,000원) 이하 분할 매수</li>
+        <li>스탑로스: 28,000원 이탈 시</li>
+        <li>비중: 포트폴리오의 3~5% 제한</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="grid-2">
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:12px;font-weight:700;">⚡ 먼저 움직일 기업 (이벤트 주도)</p>
+      <div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:0.84rem;color:#c9d1d9;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #21262d;">
+          <strong style="color:#58a6ff;">에스티아이</strong> — 수주 공시, HBM 뉴스에 즉각 반응. 시장 인지도 높아 단기 거래량 폭증.
+        </div>
+        <div style="font-size:0.84rem;color:#c9d1d9;">
+          <strong style="color:#8b949e;">한양이엔지</strong> — CCSS 동종 업체. 에스티아이 뉴스에 간접 수혜로 동반 상승.
+        </div>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:0.8rem;color:#8b949e;margin-bottom:12px;font-weight:700;">🌱 진짜 펀더멘털 수혜 기업</p>
+      <div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:0.84rem;color:#c9d1d9;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #21262d;">
+          <strong style="color:#3fb950;">에스티아이 (진짜)</strong> — CCSS+Reflow+전력반도체 트리플 성장 엔진. 2026 영업이익 +88% 실적 성장이 주가 뒷받침.
+        </div>
+        <div style="font-size:0.84rem;color:#c9d1d9;">
+          수주→매출 전환 2026년 본격화 (NTS 978억은 2027 인식). 마이크론 싱가포르는 2028 매출 기여. <strong style="color:#f0883e;">중장기 보유 시 진짜 수혜.</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ 11. 리스크 테이블 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">⚠️</div> 리스크 요약</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%;">리스크 항목</th>
+        <th style="width:50%;">상세 내용</th>
+        <th style="width:14%;">수준</th>
+        <th style="width:14%;">모니터링</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>미중 수출 규제</strong></td>
+        <td>중국 NTS 978억 수주 (2024매출 대비 29%). 미국 EAR 규제 강화 시 계약 이행 불가 → 2026 실적 하향</td>
+        <td><span class="risk-level risk-high">🔴 높음</span></td>
+        <td>미 상무부 공시</td>
+      </tr>
+      <tr>
+        <td><strong>삼성 CAPEX 리스크</strong></td>
+        <td>최대 고객 삼성전자 설비투자 지연·삭감 시 CCSS 수주 급감. 삼성 메모리 HBM 수율 부진 시 연동</td>
+        <td><span class="risk-level risk-high">🔴 높음</span></td>
+        <td>분기 실적발표</td>
+      </tr>
+      <tr>
+        <td><strong>순이익 감소 추세</strong></td>
+        <td>2025Q3 누적 순이익 -18.7% YoY. 금융비용, 이연법인세 부담. 영업이익 성장 대비 순이익 회수 지연</td>
+        <td><span class="risk-level risk-mid">🟠 중간</span></td>
+        <td>분기 손익계산서</td>
+      </tr>
+      <tr>
+        <td><strong>전력반도체 매출 지연</strong></td>
+        <td>NTS 수주 매출 인식 2027년 예정. 단기 실적 기여 없음. 양산 일정 지연 리스크 존재</td>
+        <td><span class="risk-level risk-mid">🟠 중간</span></td>
+        <td>공시·수주 진행</td>
+      </tr>
+      <tr>
+        <td><strong>CCSS 가격 경쟁</strong></td>
+        <td>한양이엔지와 과점 구조. 고객사 단가 인하 압력, 경쟁사 해외 진출 강화 시 마진 압박</td>
+        <td><span class="risk-level risk-mid">🟠 중간</span></td>
+        <td>영업이익률 추이</td>
+      </tr>
+      <tr>
+        <td><strong>글로벌 AI 투자 버블</strong></td>
+        <td>빅테크 데이터센터 투자 과열 시 조정 → HBM 수요 급감 → 반도체 장비 업종 전반 하락</td>
+        <td><span class="risk-level risk-low">🟢 낮음</span></td>
+        <td>빅테크 CAPEX 가이던스</td>
+      </tr>
+      <tr>
+        <td><strong>환율 리스크</strong></td>
+        <td>해외 수주 달러 기준 → 원화 강세 시 원화 환산 매출 감소 (마이크론·NTS 계약)</td>
+        <td><span class="risk-level risk-low">🟢 낮음</span></td>
+        <td>USD/KRW 환율</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════ 12. 투자 포인트 요약 ═══════════════════════ -->
+<div class="section">
+  <div class="section-title"><div class="icon">🎯</div> 투자 포인트 요약 & 관심종목 편입 판단</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">투자 포인트 ①</div>
+      <div style="font-size:1.2rem;margin-bottom:6px;">🏆</div>
+      <div style="font-size:0.88rem;font-weight:700;color:#e6edf3;margin-bottom:6px;">CCSS 국내 1위 + 수출 다각화</div>
+      <div style="font-size:0.8rem;color:#8b949e;">수출 포함 국내 1위. 마이크론 싱가포르(35조 프로젝트) 납품 기반 구축. 경쟁사 대비 해외 노출 最高.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">투자 포인트 ②</div>
+      <div style="font-size:1.2rem;margin-bottom:6px;">🚀</div>
+      <div style="font-size:0.88rem;font-weight:700;color:#e6edf3;margin-bottom:6px;">HBM+전력반도체 듀얼 성장</div>
+      <div style="font-size:0.8rem;color:#8b949e;">Reflow 2026E +153% 성장. 전력반도체 장비 신시장 진출(978억). CCSS 기존 사업 + 2개 신규 엔진.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">투자 포인트 ③</div>
+      <div style="font-size:1.2rem;margin-bottom:6px;">💰</div>
+      <div style="font-size:0.88rem;font-weight:700;color:#e6edf3;margin-bottom:6px;">저평가 + 실적 레버리지</div>
+      <div style="font-size:0.8rem;color:#8b949e;">PER 12×, PBR 1.09×로 동종 업종 대비 저평가. 2026E 영업이익 +88% 성장 레버리지. 시가총액 2,900억 vs 영업이익 1,000억.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;background:#0d1117;border:2px solid #1f6feb;border-radius:14px;padding:24px 28px;">
+    <div style="font-size:1rem;font-weight:800;color:#58a6ff;margin-bottom:16px;">📌 관심종목 편입 판단: ✅ 편입 추천</div>
+    <div class="grid-2">
+      <div>
+        <div style="font-size:0.85rem;color:#c9d1d9;line-height:1.9;">
+          <span style="color:#3fb950;">✅</span> 2026년 영업이익 1,000억 달성 시 P/OI 약 2.9배 → 밸류 매력<br>
+          <span style="color:#3fb950;">✅</span> 수주 공시 이벤트 빈도 높음 → 트레이딩 기회<br>
+          <span style="color:#3fb950;">✅</span> HBM + 전력반도체 + 해외팹 트리플 성장 스토리<br>
+          <span style="color:#3fb950;">✅</span> 기관(국민연금 6.26%) 보유로 하방 지지
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.85rem;color:#c9d1d9;line-height:1.9;">
+          <span style="color:#ff7b72;">⚠️</span> 중국 수출 규제 리스크 → 비중 조절 필요<br>
+          <span style="color:#ff7b72;">⚠️</span> 삼성전자 의존도 높음 → 단독 수혜 판단 신중<br>
+          <span style="color:#f0883e;">💡</span> 매수 구간: <strong style="color:#fff;">33,000~36,000원</strong> 분할 매수<br>
+          <span style="color:#f0883e;">💡</span> 목표주가: <strong style="color:#58a6ff;">43,000원</strong> (1차) → <strong style="color:#3fb950;">49,000원</strong> (강세)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center;padding:32px 0;border-top:1px solid #21262d;margin-top:8px;">
+  <div style="font-size:0.78rem;color:#6e7681;line-height:1.8;">
+    본 리포트는 <strong style="color:#8b949e;">2026.04.17</strong> 기준 공개 정보 및 증권사 컨센서스를 바탕으로 작성되었습니다.<br>
+    투자 결정의 최종 책임은 투자자 본인에게 있으며, 본 자료는 투자 권유를 목적으로 하지 않습니다.<br>
+    <span style="color:#444d56;">Sources: FnGuide · 다올투자증권 · 신한투자증권 · 이데일리 · 뉴시스 · 씽크풀 · 오렌지보드 · 한국증권</span>
+  </div>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Backup files
+kr-capital-backup-*.json
+
+# Claude Code
+.claude/
+
+# MCP config (contains local paths)
+.mcp.json
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# OS files
+Thumbs.db
+.DS_Store
