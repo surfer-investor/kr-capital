@@ -1,0 +1,57 @@
+{
+  "months": {
+    "2026-05": {
+      "assetHistory": [
+        {
+          "date": "2026-05-03",
+          "totalAsset": 10502700,
+          "note": ""
+        },
+        {
+          "date": "2026-05-01",
+          "totalAsset": 9800000,
+          "note": ""
+        },
+        {
+          "date": "2026-05-02",
+          "totalAsset": 10100000,
+          "note": "삼성전자 상승"
+        }
+      ],
+      "holdings": [
+        {
+          "name": "삼성전자",
+          "ticker": "005930.KS",
+          "market": "KR",
+          "quantity": 100,
+          "avgPrice": 70000,
+          "currentPrice": 220500,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "NVIDIA",
+          "ticker": "NVDA",
+          "market": "US",
+          "quantity": 20,
+          "avgPrice": 120,
+          "currentPrice": 198.45,
+          "investmentThesis": "",
+          "risk": ""
+        }
+      ],
+      "trades": [],
+      "capitalFlows": [
+        {
+          "date": "2026-05-03",
+          "amount": 10000000,
+          "reason": "초기 출자"
+        }
+      ],
+      "cash": 3000000,
+      "operationNote": "",
+      "reflection": "",
+      "nextMonthPlan": ""
+    }
+  }
+}
