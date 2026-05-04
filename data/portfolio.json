@@ -9,7 +9,7 @@
           "market": "US",
           "quantity": 12,
           "avgPrice": 13.15,
-          "currentPrice": 0,
+          "currentPrice": 12.73,
           "investmentThesis": "",
           "risk": ""
         },
@@ -19,7 +19,7 @@
           "market": "US",
           "quantity": 1,
           "avgPrice": 175,
-          "currentPrice": 0,
+          "currentPrice": 183.44,
           "investmentThesis": "",
           "risk": ""
         },
