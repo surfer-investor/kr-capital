@@ -63,8 +63,8 @@
           "name": "DL이앤씨",
           "ticker": "375500.KS",
           "market": "KR",
-          "quantity": 6,
-          "avgPrice": 93933,
+          "quantity": 8,
+          "avgPrice": 93299.75,
           "currentPrice": 91300,
           "investmentThesis": "",
           "risk": ""
@@ -118,16 +118,6 @@
           "currentPrice": 44100,
           "investmentThesis": "",
           "risk": ""
-        },
-        {
-          "name": "DL이앤씨",
-          "ticker": "000215",
-          "market": "KR",
-          "quantity": 2,
-          "avgPrice": 91400.0,
-          "currentPrice": 91400.0,
-          "investmentThesis": "호실적 발표 후 주가 하락 (Buy the Dip)",
-          "risk": ""
         }
       ],
       "trades": [
@@ -169,12 +159,13 @@
         },
         {
           "date": "2026-05-05",
-          "ticker": "000215",
+          "ticker": "375500.KS",
           "name": "DL이앤씨",
           "type": "buy",
           "quantity": 2,
           "price": 91400.0,
-          "reason": "호실적 발표 후 주가 하락 (Buy the Dip)"
+          "reason": "호실적 발표 후 주가 하락 (Buy the Dip)",
+          "market": "KR"
         }
       ],
       "capitalFlows": [
@@ -187,7 +178,7 @@
       "operationNote": "",
       "reflection": "",
       "nextMonthPlan": "",
-      "cashKRW": 815232,
+      "cashKRW": 632432,
       "cashUSD": 429.55
     }
   }
