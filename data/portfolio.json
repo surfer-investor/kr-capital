@@ -51,7 +51,7 @@
         },
         {
           "name": "이수스페셜티케미컬",
-          "ticker": "457190.KS",
+          "ticker": "457190.KQ",
           "market": "KR",
           "quantity": 3,
           "avgPrice": 120425,
@@ -61,7 +61,7 @@
         },
         {
           "name": "DL이앤씨",
-          "ticker": "375500.KS",
+          "ticker": "375500.KQ",
           "market": "KR",
           "quantity": 6,
           "avgPrice": 93933,
@@ -85,7 +85,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 683000,
+          "currentPrice": 680000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -105,7 +105,7 @@
           "market": "KR",
           "quantity": 5,
           "avgPrice": 104112,
-          "currentPrice": 104255,
+          "currentPrice": 104260,
           "investmentThesis": "",
           "risk": ""
         },
