@@ -29,7 +29,7 @@
           "market": "US",
           "quantity": 13,
           "avgPrice": 18.02,
-          "currentPrice": 0,
+          "currentPrice": 18.45,
           "investmentThesis": "",
           "risk": ""
         },
@@ -49,7 +49,7 @@
           "market": "KR",
           "quantity": 3,
           "avgPrice": 120425,
-          "currentPrice": 0,
+          "currentPrice": 122800,
           "investmentThesis": "",
           "risk": ""
         },
@@ -59,7 +59,7 @@
           "market": "KR",
           "quantity": 6,
           "avgPrice": 93933,
-          "currentPrice": 91000,
+          "currentPrice": 91200,
           "investmentThesis": "",
           "risk": ""
         },
@@ -79,7 +79,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 680000,
+          "currentPrice": 682000,
           "investmentThesis": "",
           "risk": ""
         },
