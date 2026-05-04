@@ -143,13 +143,7 @@
           "reason": ""
         }
       ],
-      "capitalFlows": [
-        {
-          "date": "2026-05-03",
-          "amount": 10000000,
-          "reason": "초기 출자"
-        }
-      ],
+      "capitalFlows": [],
       "operationNote": "",
       "reflection": "",
       "nextMonthPlan": "",
