@@ -20,22 +20,102 @@
       ],
       "holdings": [
         {
-          "name": "삼성전자",
-          "ticker": "005930.KS",
-          "market": "KR",
-          "quantity": 100,
-          "avgPrice": 70000,
-          "currentPrice": 220500,
+          "name": "Venture Global",
+          "ticker": "VG",
+          "market": "US",
+          "quantity": 12,
+          "avgPrice": 13.15,
+          "currentPrice": 13.15,
           "investmentThesis": "",
           "risk": ""
         },
         {
-          "name": "NVIDIA",
-          "ticker": "NVDA",
+          "name": "Applied Optoelectronics",
+          "ticker": "AAOI",
           "market": "US",
+          "quantity": 1,
+          "avgPrice": 175.0,
+          "currentPrice": 175.0,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "LLYX",
+          "ticker": "LLYX",
+          "market": "US",
+          "quantity": 13,
+          "avgPrice": 18.02,
+          "currentPrice": 18.02,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "블랙야크아이앤씨",
+          "ticker": "478560",
+          "market": "KR",
           "quantity": 20,
-          "avgPrice": 120,
-          "currentPrice": 198.45,
+          "avgPrice": 3685,
+          "currentPrice": 3685,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "이수스페셜티케미컬",
+          "ticker": "457190",
+          "market": "KR",
+          "quantity": 3,
+          "avgPrice": 120425,
+          "currentPrice": 120425,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "DL이앤씨",
+          "ticker": "375500",
+          "market": "KR",
+          "quantity": 2,
+          "avgPrice": 101400,
+          "currentPrice": 101400,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "GS피앤엘",
+          "ticker": "499790",
+          "market": "KR",
+          "quantity": 7,
+          "avgPrice": 56057,
+          "currentPrice": 56057,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "HD현대중공업",
+          "ticker": "329180",
+          "market": "KR",
+          "quantity": 1,
+          "avgPrice": 662000,
+          "currentPrice": 662000,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "KODEX 로봇액티브",
+          "ticker": "445290",
+          "market": "KR",
+          "quantity": 14,
+          "avgPrice": 34996,
+          "currentPrice": 34996,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "KODEX 머니마켓액티브",
+          "ticker": "488770",
+          "market": "KR",
+          "quantity": 17,
+          "avgPrice": 104112,
+          "currentPrice": 104112,
           "investmentThesis": "",
           "risk": ""
         }
