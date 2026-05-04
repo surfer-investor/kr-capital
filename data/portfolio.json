@@ -35,11 +35,11 @@
         },
         {
           "name": "블랙야크아이앤씨",
-          "ticker": "478560.KS",
+          "ticker": "478560.KQ",
           "market": "KR",
           "quantity": 20,
           "avgPrice": 3685,
-          "currentPrice": 0,
+          "currentPrice": 3485,
           "investmentThesis": "",
           "risk": ""
         },
@@ -109,7 +109,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 17770,
-          "currentPrice": 42900,
+          "currentPrice": 42950,
           "investmentThesis": "",
           "risk": ""
         }
