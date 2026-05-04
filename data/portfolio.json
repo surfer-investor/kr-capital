@@ -1,7 +1,13 @@
 {
   "months": {
     "2026-05": {
-      "assetHistory": [],
+      "assetHistory": [
+        {
+          "date": "2026-05-04",
+          "totalAsset": 5646080,
+          "note": ""
+        }
+      ],
       "holdings": [
         {
           "name": "Venture Global",
