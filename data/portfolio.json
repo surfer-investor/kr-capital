@@ -73,8 +73,8 @@
           "name": "GS피앤엘",
           "ticker": "499790.KS",
           "market": "KR",
-          "quantity": 9,
-          "avgPrice": 55911,
+          "quantity": 11,
+          "avgPrice": 55800.0,
           "currentPrice": 55400.0,
           "investmentThesis": "",
           "risk": ""
@@ -118,16 +118,6 @@
           "currentPrice": 44350.0,
           "investmentThesis": "",
           "risk": ""
-        },
-        {
-          "name": "GS피앤엘",
-          "ticker": "499790",
-          "market": "KR",
-          "quantity": 2,
-          "avgPrice": 55300.0,
-          "currentPrice": 55400.0,
-          "investmentThesis": "실적발표 임박 모멘텀, 중장기 매수",
-          "risk": ""
         }
       ],
       "trades": [
@@ -160,7 +150,7 @@
         },
         {
           "date": "2026-05-04",
-          "ticker": "499790",
+          "ticker": "499790.KS",
           "name": "GS피앤엘",
           "quantity": 2,
           "price": 55300.0,
