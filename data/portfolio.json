@@ -118,6 +118,16 @@
           "currentPrice": 44100,
           "investmentThesis": "",
           "risk": ""
+        },
+        {
+          "name": "DL이앤씨",
+          "ticker": "000215",
+          "market": "KR",
+          "quantity": 2,
+          "avgPrice": 91400.0,
+          "currentPrice": 91400.0,
+          "investmentThesis": "호실적 발표 후 주가 하락 (Buy the Dip)",
+          "risk": ""
         }
       ],
       "trades": [
@@ -156,6 +166,15 @@
           "price": 55300,
           "reason": "실적발표 임박 모멘텀, 중장기 매수",
           "type": "buy"
+        },
+        {
+          "date": "2026-05-05",
+          "ticker": "000215",
+          "name": "DL이앤씨",
+          "type": "buy",
+          "quantity": 2,
+          "price": 91400.0,
+          "reason": "호실적 발표 후 주가 하락 (Buy the Dip)"
         }
       ],
       "capitalFlows": [
