@@ -81,11 +81,11 @@
         },
         {
           "name": "HD현대중공업",
-          "ticker": "329180.KS",
+          "ticker": "329180.KQ",
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 680000,
+          "currentPrice": 164300,
           "investmentThesis": "",
           "risk": ""
         },
