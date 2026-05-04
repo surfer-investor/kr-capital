@@ -57,8 +57,8 @@
           "name": "DL이앤씨",
           "ticker": "375500.KS",
           "market": "KR",
-          "quantity": 2,
-          "avgPrice": 101400,
+          "quantity": 6,
+          "avgPrice": 93933,
           "currentPrice": 91000,
           "investmentThesis": "",
           "risk": ""
@@ -97,14 +97,43 @@
           "name": "KODEX 머니마켓액티브",
           "ticker": "488770.KS",
           "market": "KR",
-          "quantity": 17,
+          "quantity": 5,
           "avgPrice": 104112,
+          "currentPrice": 0,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "제이에스링크",
+          "ticker": "127120.KQ",
+          "market": "KR",
+          "quantity": 1,
+          "avgPrice": 17770,
           "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         }
       ],
-      "trades": [],
+      "trades": [
+        {
+          "date": "2026-05-04",
+          "ticker": "488770.KS",
+          "name": "KODEX 머니마켓액티브",
+          "side": "sell",
+          "quantity": 12,
+          "price": 104255,
+          "reason": ""
+        },
+        {
+          "date": "2026-05-04",
+          "ticker": "375500.KS",
+          "name": "DL이앤씨",
+          "side": "buy",
+          "quantity": 4,
+          "price": 90200,
+          "reason": ""
+        }
+      ],
       "capitalFlows": [
         {
           "date": "2026-05-03",
@@ -116,7 +145,8 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 3000000,
-      "cashUSD": 0
+      "cashUSD": 429.55,
+      "cash": 1012680
     }
   }
 }
