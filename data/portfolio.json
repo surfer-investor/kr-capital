@@ -18,7 +18,7 @@
           "ticker": "AAOI",
           "market": "US",
           "quantity": 1,
-          "avgPrice": 175.0,
+          "avgPrice": 175,
           "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
@@ -59,7 +59,7 @@
           "market": "KR",
           "quantity": 2,
           "avgPrice": 101400,
-          "currentPrice": 0,
+          "currentPrice": 91000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -69,7 +69,7 @@
           "market": "KR",
           "quantity": 7,
           "avgPrice": 56057,
-          "currentPrice": 0,
+          "currentPrice": 55000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -79,7 +79,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 0,
+          "currentPrice": 680000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -112,10 +112,11 @@
           "reason": "초기 출자"
         }
       ],
-      "cash": 3000000,
       "operationNote": "",
       "reflection": "",
-      "nextMonthPlan": ""
+      "nextMonthPlan": "",
+      "cashKRW": 3000000,
+      "cashUSD": 0
     }
   }
 }
