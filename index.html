@@ -1063,7 +1063,7 @@ function renderTrades(m) {
   const tbody = document.getElementById('tradesBody');
   if (!m.trades.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
   tbody.innerHTML = [...m.trades].sort((a,b) => b.date.localeCompare(a.date)).map((t, i) => {
-    return `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
+    return `<tr><td>${t.date}</td><td>${t.name}</td><td>${(t.side||t.type)==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
     <td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td>
     <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeTrade(${i})">삭제</button></td></tr>`;
   }).join('');
@@ -1197,7 +1197,7 @@ function printReport() {
   document.getElementById('rptAllocation').innerHTML = allT ? `한국주식: ${fmtWon(krVal)} (${(krVal/allT*100).toFixed(1)}%) / 미국주식: ${fmtWon(usVal)} (${(usVal/allT*100).toFixed(1)}%) / 현금: ${fmtWon(cashVal)} (${(cashVal/allT*100).toFixed(1)}%)` : '-';
 
   document.getElementById('rptTrades').innerHTML = m.trades.length ?
-    [...m.trades].sort((a,b)=>b.date.localeCompare(a.date)).map(t => `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'매수':'매도'}</td><td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td></tr>`).join('')
+    [...m.trades].sort((a,b)=>b.date.localeCompare(a.date)).map(t => `<tr><td>${t.date}</td><td>${t.name}</td><td>${(t.side||t.type)==='buy'?'매수':'매도'}</td><td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td></tr>`).join('')
     : '<tr><td colspan="6" style="text-align:center">-</td></tr>';
 
   document.getElementById('rptFlows').innerHTML = m.capitalFlows.length ?
