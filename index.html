@@ -128,13 +128,21 @@ body {
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 4px 10px;
+  padding: 4px 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   color: var(--text);
   display: flex;
   align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  justify-content: center;
+  transition: background .2s, border-color .2s;
 }
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+.theme-toggle .icon { font-size: 14px; }
 
 /* NAV TABS */
 .nav {
@@ -398,6 +406,93 @@ textarea {
 /* HIDDEN */
 .hidden { display: none; }
 
+/* GITHUB SYNC */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sync-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.sync-dot.connected { background: var(--green); }
+.sync-dot.syncing { background: var(--orange); animation: pulse 1s infinite; }
+.sync-dot.error { background: var(--red); }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  width: 440px;
+  max-width: 90vw;
+}
+
+.modal h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.modal .form-group { margin-bottom: 12px; }
+
+.modal .form-group label {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.modal input[type="password"],
+.modal input[type="text"] {
+  width: 100%;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 18px;
+  justify-content: flex-end;
+}
+
+.modal-info {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 6px;
+}
+
+.modal-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
 /* SUB TABS */
 .sub-tabs {
   display: flex;
@@ -440,12 +535,14 @@ textarea {
       <span>USD/KRW</span>
       <input type="number" id="fxRate" value="1380" onchange="updateFxRate()" step="1">
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="다크/라이트 모드 전환">
-      <span id="themeIcon">&#9788;</span>
+    <button class="theme-toggle" onclick="toggleTheme()" title="다크/라이트 모드 전환" id="themeBtn">
+      <span class="icon" id="themeIcon">&#9790;</span><span id="themeLabel">Dark</span>
     </button>
     <button class="btn btn-sm" onclick="exportJSON()" title="데이터를 JSON 파일로 백업">백업</button>
     <button class="btn btn-sm" onclick="document.getElementById('importFile').click()" title="JSON 파일에서 데이터 복원">복원</button>
     <input type="file" id="importFile" class="hidden" accept=".json" onchange="importJSON(event)">
+    <span class="sync-status" id="syncStatus"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">미연결</span></span>
+    <button class="btn btn-sm" onclick="openGitHubModal()" title="GitHub에 데이터 자동 동기화">GitHub 동기화</button>
     <button class="btn btn-primary" onclick="printReport()">보고서 출력</button>
   </div>
 </div>
@@ -454,6 +551,7 @@ textarea {
 <div class="nav no-print">
   <div class="nav-tab active" onclick="switchPage('overview')">자산 현황</div>
   <div class="nav-tab" onclick="switchPage('portfolio')">포트폴리오</div>
+  <div class="nav-tab" onclick="switchPage('analysis')">분석</div>
   <div class="nav-tab" onclick="switchPage('records')">매매 & 출자</div>
   <div class="nav-tab" onclick="switchPage('notes')">월간 운용</div>
 </div>
@@ -534,13 +632,18 @@ textarea {
         </div>
       </div>
       <div class="form-row no-print">
+        <div class="form-group" style="position:relative">
+          <label>종목 검색</label>
+          <input type="text" id="hSearch" placeholder="삼성전자, NVDA..." style="width:200px" autocomplete="off" oninput="onStockSearch(this.value)">
+          <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:240px;overflow-y:auto;width:340px;box-shadow:0 8px 24px rgba(0,0,0,.3)"></div>
+        </div>
         <div class="form-group">
           <label>종목명</label>
-          <input type="text" id="hName" placeholder="삼성전자" style="width:110px">
+          <input type="text" id="hName" placeholder="자동입력" style="width:110px">
         </div>
         <div class="form-group">
           <label>티커</label>
-          <input type="text" id="hTicker" placeholder="005930.KS" style="width:100px">
+          <input type="text" id="hTicker" placeholder="자동입력" style="width:100px">
         </div>
         <div class="form-group">
           <label>시장</label>
@@ -574,8 +677,10 @@ textarea {
               <th class="num">현재가</th>
               <th class="num">평가금액(원)</th>
               <th class="num">수익률</th>
-              <th>투자포인트</th>
-              <th>리스크</th>
+              <th class="num">목표비중</th>
+              <th class="num">매력점수</th>
+              <th class="num">TP</th>
+              <th class="num">SL</th>
               <th class="no-print" style="width:50px"></th>
             </tr>
           </thead>
@@ -585,12 +690,34 @@ textarea {
     </div>
 
     <div class="card">
-      <div class="card-title">현금</div>
+      <div class="card-title">현금 보유</div>
       <div class="form-row">
         <div class="form-group">
-          <label>현금 보유액 (원)</label>
-          <input type="number" id="cashInput" placeholder="0" style="width:200px" onchange="updateCash()">
+          <label>원화 (KRW)</label>
+          <input type="number" id="cashKRWInput" placeholder="0" style="width:180px" onchange="updateCash()">
         </div>
+        <div class="form-group">
+          <label>달러 (USD)</label>
+          <input type="number" id="cashUSDInput" placeholder="0" step="0.01" style="width:180px" onchange="updateCash()">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <span id="cashTotal" style="font-size:13px;color:var(--text-dim)"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PAGE: ANALYSIS -->
+  <div class="page" id="page-analysis">
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-title">종목별 비율</div>
+        <div class="donut-container" id="stockPieContainer"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">포트폴리오 분석</div>
+        <div id="portfolioAnalysis" style="font-size:14px;line-height:2"></div>
       </div>
     </div>
   </div>
@@ -604,9 +731,25 @@ textarea {
           <label>날짜</label>
           <input type="date" id="tDate" style="width:130px">
         </div>
+        <div class="form-group" style="position:relative">
+          <label>종목 검색</label>
+          <input type="text" id="tSearch" placeholder="삼성전자, NVDA..." style="width:170px" autocomplete="off" oninput="onTradeSearch(this.value)">
+          <div id="tradeSearchResults" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:240px;overflow-y:auto;width:340px;box-shadow:0 8px 24px rgba(0,0,0,.3)"></div>
+        </div>
         <div class="form-group">
           <label>종목명</label>
-          <input type="text" id="tName" placeholder="삼성전자" style="width:110px">
+          <input type="text" id="tName" placeholder="자동입력" style="width:110px">
+        </div>
+        <div class="form-group">
+          <label>티커</label>
+          <input type="text" id="tTicker" placeholder="자동입력" style="width:100px">
+        </div>
+        <div class="form-group">
+          <label>시장</label>
+          <select id="tMarket" style="width:70px">
+            <option value="KR">KR</option>
+            <option value="US">US</option>
+          </select>
         </div>
         <div class="form-group">
           <label>매수/매도</label>
@@ -627,7 +770,7 @@ textarea {
       </div>
       <table>
         <thead>
-          <tr><th>날짜</th><th>종목</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="no-print" style="width:50px"></th></tr>
+          <tr><th>날짜</th><th>종목</th><th>시장</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="no-print" style="width:50px"></th></tr>
         </thead>
         <tbody id="tradesBody"></tbody>
       </table>
@@ -726,12 +869,46 @@ textarea {
   <div class="report-section"><h3>다음 달 계획</h3><div class="report-text" id="rptPlan"></div></div>
 </div>
 
+<!-- GitHub Sync Modal -->
+<div class="modal-overlay" id="githubModal" onclick="if(event.target===this)closeGitHubModal()">
+  <div class="modal">
+    <h3>GitHub 동기화 설정</h3>
+    <div class="form-group">
+      <label>GitHub Personal Access Token</label>
+      <input type="password" id="githubTokenInput" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+    <div class="form-group">
+      <label>Repository (owner/repo)</label>
+      <input type="text" id="githubRepoInput" placeholder="surfer-investor/kr-capital">
+    </div>
+    <div class="form-group">
+      <label>파일 경로</label>
+      <input type="text" id="githubPathInput" placeholder="data/portfolio.json">
+    </div>
+    <div class="modal-info">
+      PAT는 <strong>repo</strong> 또는 <strong>Contents: Read and write</strong> 권한이 필요합니다.<br>
+      토큰은 브라우저 localStorage에만 저장됩니다.
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeGitHubModal()">취소</button>
+      <button class="btn btn-danger" onclick="disconnectGitHub()">연결 해제</button>
+      <button class="btn btn-primary" onclick="saveGitHubSettings()">저장</button>
+    </div>
+    <hr class="modal-divider">
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-sm" onclick="loadFromGitHub()" id="ghLoadBtn">GitHub에서 불러오기</button>
+      <button class="btn btn-sm" onclick="pushToGitHub()" id="ghPushBtn">GitHub에 즉시 저장</button>
+      <span id="ghModalStatus" style="font-size:11px;color:var(--text-dim)"></span>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============ DATA ============
 const STORAGE_KEY = 'kr_capital_data';
 const SETTINGS_KEY = 'kr_capital_settings';
 let data = { months: {} };
-let settings = { fxRate: 1380, theme: 'dark' };
+let settings = { fxRate: 1380, theme: 'dark', githubToken: '', githubRepo: 'surfer-investor/kr-capital', githubPath: 'data/portfolio.json' };
 let currentMonth = '';
 
 function loadData() {
@@ -739,12 +916,15 @@ function loadData() {
   try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { fxRate: 1380, theme: 'dark' }; } catch(e) {}
 }
 
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  if (settings.githubToken) debouncedSaveToGitHub();
+}
 function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
 
 function getMonth(key) {
   if (!data.months[key]) {
-    data.months[key] = { assetHistory:[], holdings:[], trades:[], capitalFlows:[], cash:0, operationNote:'', reflection:'', nextMonthPlan:'' };
+    data.months[key] = { assetHistory:[], holdings:[], trades:[], capitalFlows:[], cashKRW:0, cashUSD:0, operationNote:'', reflection:'', nextMonthPlan:'' };
   }
   return data.months[key];
 }
@@ -777,7 +957,8 @@ function costKRW(h) {
 // ============ THEME ============
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', settings.theme);
-  document.getElementById('themeIcon').textContent = settings.theme === 'dark' ? '\u2606' : '\u2605';
+  document.getElementById('themeIcon').textContent = settings.theme === 'dark' ? '\u263E' : '\u2600';
+  document.getElementById('themeLabel').textContent = settings.theme === 'dark' ? 'Dark' : 'Light';
   document.getElementById('fxRate').value = settings.fxRate || 1380;
 }
 
@@ -797,9 +978,13 @@ function switchPage(name) {
 }
 
 // ============ INIT ============
-function init() {
+async function init() {
   loadData();
   applyTheme();
+
+  // GitHub에서 자동 동기화 (단일 데이터 소스)
+  const synced = await autoSyncFromGitHub();
+
   const thisMonth = getCurrentMonthKey();
   if (!data.months[thisMonth]) getMonth(thisMonth);
   populateMonthSelect();
@@ -808,6 +993,8 @@ function init() {
   setDefaultDates();
   updateMarketLabel();
   render();
+
+  if (synced) updateSyncStatus('connected', '동기화 완료');
 }
 
 function populateMonthSelect() {
@@ -869,18 +1056,30 @@ function render() {
   renderSummary(m);
   renderAssetChart(m);
   renderDonut(m);
+  renderStockPie(m);
   renderHoldings(m);
   renderTrades(m);
   renderFlows(m);
   renderAssetHistory(m);
   renderNotes(m);
-  document.getElementById('cashInput').value = m.cash || '';
+  renderPortfolioAnalysis(m);
+  // 기존 cash → cashKRW 마이그레이션
+  if (m.cash !== undefined && m.cashKRW === undefined) {
+    m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash;
+  }
+  document.getElementById('cashKRWInput').value = m.cashKRW || '';
+  document.getElementById('cashUSDInput').value = m.cashUSD || '';
+  const cashTotalEl = document.getElementById('cashTotal');
+  if (cashTotalEl) {
+    const usdInKrw = (m.cashUSD || 0) * getFxRate();
+    cashTotalEl.textContent = (m.cashUSD ? `= ${fmtWon(getCashKRW(m))} (USD ${fmtWon(usdInKrw)})` : '');
+  }
 }
 
 function renderSummary(m) {
   const holdingsVal = m.holdings.reduce((s, h) => s + evalKRW(h), 0);
   const holdingsCost = m.holdings.reduce((s, h) => s + costKRW(h), 0);
-  const totalAsset = holdingsVal + (m.cash || 0);
+  const totalAsset = holdingsVal + getCashKRW(m);
 
   document.getElementById('totalAsset').textContent = fmtWon(totalAsset);
 
@@ -897,7 +1096,7 @@ function renderSummary(m) {
   const idx = months.indexOf(currentMonth);
   if (idx > 0) {
     const prev = getMonth(months[idx - 1]);
-    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + (prev.cash || 0);
+    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(prev);
     const diff = totalAsset - prevVal;
     const pct = prevVal ? ((diff / prevVal) * 100) : 0;
     document.getElementById('monthChange').textContent = fmtSign(diff);
@@ -972,7 +1171,9 @@ function renderDonut(m) {
   const container = document.getElementById('donutContainer');
   const krVal = m.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
   const usVal = m.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
-  const cashVal = m.cash || 0;
+  const cashKRWVal = m.cashKRW || (m.cash || 0);
+  const cashUSDVal = (m.cashUSD || 0) * getFxRate();
+  const cashVal = cashKRWVal + cashUSDVal;
   const total = krVal + usVal + cashVal;
 
   if (total === 0) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px">데이터 없음</div>'; return; }
@@ -980,15 +1181,17 @@ function renderDonut(m) {
   const segments = [
     { label: '한국주식', value: krVal, color: 'var(--accent2)' },
     { label: '미국주식', value: usVal, color: 'var(--blue)' },
-    { label: '현금', value: cashVal, color: 'var(--green)' }
+    ...(cashKRWVal > 0 && cashUSDVal > 0
+      ? [{ label: '현금(KRW)', value: cashKRWVal, color: 'var(--green)' }, { label: '현금(USD)', value: cashUSDVal, color: '#2ecc71' }]
+      : [{ label: '현금', value: cashVal, color: 'var(--green)' }])
   ].filter(s => s.value > 0);
 
-  const R = 55, cx = 70, cy = 70;
+  const R = 85, cx = 110, cy = 110, hole = 45;
   let startAngle = -Math.PI / 2, paths = '';
   segments.forEach(seg => {
     const pct = seg.value / total;
     const endAngle = startAngle + pct * 2 * Math.PI;
-    if (pct >= 0.999) { paths += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="22"/>`; }
+    if (pct >= 0.999) { paths += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="30"/>`; }
     else {
       const la = pct > 0.5 ? 1 : 0;
       paths += `<path d="M${cx},${cy} L${cx+R*Math.cos(startAngle)},${cy+R*Math.sin(startAngle)} A${R},${R} 0 ${la} 1 ${cx+R*Math.cos(endAngle)},${cy+R*Math.sin(endAngle)} Z" fill="${seg.color}" opacity="0.85"/>`;
@@ -998,13 +1201,49 @@ function renderDonut(m) {
 
   const legend = segments.map(s => `<div class="legend-item"><div class="legend-dot" style="background:${s.color}"></div><span>${s.label} ${(s.value/total*100).toFixed(1)}% (${fmtWon(s.value)})</span></div>`).join('');
 
-  container.innerHTML = `<svg viewBox="0 0 140 140" width="120" height="120"><circle cx="${cx}" cy="${cy}" r="30" fill="var(--bg)"/>${paths}<circle cx="${cx}" cy="${cy}" r="30" fill="var(--donut-hole)"/></svg><div class="donut-legend">${legend}</div>`;
+  container.innerHTML = `<svg viewBox="0 0 220 220" width="200" height="200"><circle cx="${cx}" cy="${cy}" r="${hole}" fill="var(--bg)"/>${paths}<circle cx="${cx}" cy="${cy}" r="${hole}" fill="var(--donut-hole)"/></svg><div class="donut-legend">${legend}</div>`;
+}
+
+// ============ STOCK PIE CHART ============
+function renderStockPie(m) {
+  const container = document.getElementById('stockPieContainer');
+  if (!m.holdings.length) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px">보유 종목 없음</div>'; return; }
+
+  // 비중 높은 순 정렬, 현금 포함
+  const PIE_COLORS = ['#6c5ce7','#a29bfe','#74b9ff','#00cec9','#55efc4','#ffeaa7','#fdcb6e','#fab1a0','#ff7675','#e17055','#d63031','#b2bec3'];
+  const items = m.holdings.map(h => ({ label: h.name, value: evalKRW(h) })).filter(s => s.value > 0);
+  const cashVal = getCashKRW(m);
+  if (cashVal > 0) items.push({ label: '현금', value: cashVal });
+  items.sort((a, b) => b.value - a.value);
+  items.forEach((s, i) => { s.color = PIE_COLORS[i % PIE_COLORS.length]; });
+
+  const total = items.reduce((s, x) => s + x.value, 0);
+  if (total === 0) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px">평가금액 없음</div>'; return; }
+
+  const R = 85, cx = 110, cy = 110, hole = 45;
+  let startAngle = -Math.PI / 2, paths = '';
+  items.forEach((seg, idx) => {
+    const pct = seg.value / total;
+    const endAngle = startAngle + pct * 2 * Math.PI;
+    const tooltip = `${seg.label} ${(pct*100).toFixed(1)}% (${fmtWon(seg.value)})`;
+    if (pct >= 0.999) {
+      paths += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${seg.color}" stroke-width="30"><title>${tooltip}</title></circle>`;
+    } else {
+      const la = pct > 0.5 ? 1 : 0;
+      paths += `<path d="M${cx},${cy} L${cx+R*Math.cos(startAngle)},${cy+R*Math.sin(startAngle)} A${R},${R} 0 ${la} 1 ${cx+R*Math.cos(endAngle)},${cy+R*Math.sin(endAngle)} Z" fill="${seg.color}" opacity="0.88" style="cursor:pointer"><title>${tooltip}</title></path>`;
+    }
+    startAngle = endAngle;
+  });
+
+  const legend = items.map(s => `<div class="legend-item"><div class="legend-dot" style="background:${s.color}"></div><span>${s.label} ${(s.value/total*100).toFixed(1)}%</span></div>`).join('');
+  container.innerHTML = `<svg viewBox="0 0 220 220" width="200" height="200">${paths}<circle cx="${cx}" cy="${cy}" r="${hole}" fill="var(--donut-hole)"/></svg><div class="donut-legend">${legend}</div>`;
 }
 
 // ============ HOLDINGS ============
 function renderHoldings(m) {
   const tbody = document.getElementById('holdingsBody');
-  if (!m.holdings.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
+  if (!m.holdings.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
+
 
   const fx = getFxRate();
   tbody.innerHTML = m.holdings.map((h, i) => {
@@ -1022,8 +1261,10 @@ function renderHoldings(m) {
       <td class="num">${curDisplay}</td>
       <td class="num">${fmtWon(ev)}</td>
       <td class="num ${pnl>=0?'positive':'negative'}">${fmtPct(pnl)}</td>
-      <td><input type="text" value="${h.investmentThesis||''}" onchange="updateHolding(${i},'investmentThesis',this.value)" style="width:120px;font-size:12px" placeholder="투자포인트"></td>
-      <td><input type="text" value="${h.risk||''}" onchange="updateHolding(${i},'risk',this.value)" style="width:100px;font-size:12px" placeholder="리스크"></td>
+      <td class="num"><input type="number" value="${h.targetWeight||0}" onchange="updateHolding(${i},'targetWeight',Number(this.value))" style="width:60px;font-size:12px;text-align:right" min="0" max="100" step="1">%</td>
+      <td class="num"><input type="number" value="${h.attractScore||0}" onchange="updateHolding(${i},'attractScore',Number(this.value))" style="width:50px;font-size:12px;text-align:right" min="1" max="10" step="1"></td>
+      <td class="num"><input type="number" value="${h.tp||''}" onchange="updateHolding(${i},'tp',Number(this.value))" style="width:80px;font-size:12px;text-align:right" placeholder="목표가"></td>
+      <td class="num"><input type="number" value="${h.sl||''}" onchange="updateHolding(${i},'sl',Number(this.value))" style="width:80px;font-size:12px;text-align:right" placeholder="손절가"></td>
       <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeHolding(${i})">삭제</button></td>
     </tr>`;
   }).join('');
@@ -1033,16 +1274,31 @@ function addHolding() {
   const m = getMonth(currentMonth);
   const name = document.getElementById('hName').value.trim();
   if (!name) return alert('종목명을 입력해주세요');
+  const market = document.getElementById('hMarket').value;
+  const quantity = Number(document.getElementById('hQty').value) || 0;
+  const avgPrice = Number(document.getElementById('hAvgPrice').value) || 0;
+  const cost = quantity * avgPrice;
+
+  // 매수 시 현금 자동 차감
+  if (cost > 0) {
+    // 기존 cash → cashKRW 마이그레이션
+    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+    if (market === 'US') {
+      m.cashUSD = (m.cashUSD || 0) - cost;
+    } else {
+      m.cashKRW = (m.cashKRW || 0) - cost;
+    }
+  }
+
   m.holdings.push({
     name, ticker: document.getElementById('hTicker').value.trim(),
-    market: document.getElementById('hMarket').value,
-    quantity: Number(document.getElementById('hQty').value) || 0,
-    avgPrice: Number(document.getElementById('hAvgPrice').value) || 0,
+    market, quantity, avgPrice,
     currentPrice: Number(document.getElementById('hCurPrice').value) || 0,
     investmentThesis: '', risk: ''
   });
   saveData(); render();
   ['hName','hTicker','hQty','hAvgPrice','hCurPrice'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('hSearch').value = '';
 }
 
 function updateHolding(idx, field, value) { getMonth(currentMonth).holdings[idx][field] = value; saveData(); }
@@ -1053,17 +1309,69 @@ function removeHolding(idx) {
 }
 
 // ============ CASH ============
+function getCashKRW(m) {
+  // 기존 데이터 호환: 옛날 cash 필드가 있으면 cashKRW로 마이그레이션
+  if (m.cash !== undefined && m.cashKRW === undefined) {
+    m.cashKRW = m.cash;
+    m.cashUSD = 0;
+    delete m.cash;
+  }
+  return (m.cashKRW || 0) + (m.cashUSD || 0) * getFxRate();
+}
+
 function updateCash() {
-  getMonth(currentMonth).cash = Number(document.getElementById('cashInput').value) || 0;
+  const m = getMonth(currentMonth);
+  m.cashKRW = Number(document.getElementById('cashKRWInput').value) || 0;
+  m.cashUSD = Number(document.getElementById('cashUSDInput').value) || 0;
+  if (m.cash !== undefined) delete m.cash;
   saveData(); render();
+}
+
+// ============ PORTFOLIO ANALYSIS ============
+function renderPortfolioAnalysis(m) {
+  const el = document.getElementById('portfolioAnalysis');
+  if (!el) return;
+  if (!m.holdings.length) { el.innerHTML = '<span style="color:var(--text-dim)">보유 종목을 추가하면 분석이 표시됩니다</span>'; return; }
+
+  const fx = getFxRate();
+  const krVal = m.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
+  const usVal = m.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
+  const holdingsVal = krVal + usVal;
+  const holdingsCost = m.holdings.reduce((s, h) => s + costKRW(h), 0);
+  const cashVal = getCashKRW(m);
+  const totalAsset = holdingsVal + cashVal;
+  const totalPnl = holdingsVal - holdingsCost;
+  const totalPnlPct = holdingsCost ? (totalPnl / holdingsCost * 100) : 0;
+
+  const krPct = totalAsset ? (krVal / totalAsset * 100).toFixed(1) : 0;
+  const usPct = totalAsset ? (usVal / totalAsset * 100).toFixed(1) : 0;
+  const cashPct = totalAsset ? (cashVal / totalAsset * 100).toFixed(1) : 0;
+
+  let stockWeights = m.holdings.map(h => {
+    const ev = evalKRW(h);
+    const pct = totalAsset ? (ev / totalAsset * 100).toFixed(1) : 0;
+    return `<span style="margin-right:12px">${h.name} <strong>${pct}%</strong></span>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px">
+      <div><span style="color:var(--text-dim)">한국주식:</span> <strong>${fmtWon(krVal)}</strong> (${krPct}%)</div>
+      <div><span style="color:var(--text-dim)">미국주식:</span> <strong>${fmtWon(usVal)}</strong> (${usPct}%)</div>
+      <div><span style="color:var(--text-dim)">현금:</span> <strong>${fmtWon(cashVal)}</strong> (${cashPct}%)</div>
+      <div><span style="color:var(--text-dim)">총자산:</span> <strong>${fmtWon(totalAsset)}</strong></div>
+      <div><span style="color:var(--text-dim)">총 손익:</span> <strong class="${totalPnl>=0?'positive':'negative'}">${fmtSign(totalPnl)} (${fmtPct(totalPnlPct)})</strong></div>
+    </div>
+    <div style="color:var(--text-dim);margin-bottom:4px">종목별 비중 (총자산 기준):</div>
+    <div style="display:flex;flex-wrap:wrap">${stockWeights}</div>
+  `;
 }
 
 // ============ TRADES ============
 function renderTrades(m) {
   const tbody = document.getElementById('tradesBody');
-  if (!m.trades.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
+  if (!m.trades.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
   tbody.innerHTML = [...m.trades].sort((a,b) => b.date.localeCompare(a.date)).map((t, i) => {
-    return `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
+    return `<tr><td>${t.date}</td><td>${t.name}${t.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+t.ticker+'</span>' : ''}</td><td>${t.market||'-'}</td><td>${t.type==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
     <td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td>
     <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeTrade(${i})">삭제</button></td></tr>`;
   }).join('');
@@ -1073,10 +1381,45 @@ function addTrade() {
   const m = getMonth(currentMonth);
   const name = document.getElementById('tName').value.trim();
   if (!name) return alert('종목명을 입력해주세요');
-  m.trades.push({ date: document.getElementById('tDate').value, name, type: document.getElementById('tType').value,
-    quantity: Number(document.getElementById('tQty').value)||0, price: Number(document.getElementById('tPrice').value)||0 });
+  const ticker = document.getElementById('tTicker').value.trim();
+  const market = document.getElementById('tMarket').value;
+  const type = document.getElementById('tType').value;
+  const quantity = Number(document.getElementById('tQty').value) || 0;
+  const price = Number(document.getElementById('tPrice').value) || 0;
+  const date = document.getElementById('tDate').value;
+  const totalCost = quantity * price;
+
+  // 기존 cash → cashKRW 마이그레이션
+  if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+
+  if (type === 'buy') {
+    // 매수: holdings에 추가/업데이트, 현금 차감
+    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    if (existing) {
+      const oldCost = existing.quantity * existing.avgPrice;
+      existing.quantity += quantity;
+      existing.avgPrice = existing.quantity > 0 ? (oldCost + totalCost) / existing.quantity : 0;
+    } else {
+      m.holdings.push({ name, ticker, market, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+    }
+    if (market === 'US') { m.cashUSD = (m.cashUSD || 0) - totalCost; }
+    else { m.cashKRW = (m.cashKRW || 0) - totalCost; }
+  } else {
+    // 매도: holdings에서 수량 차감, 현금 증가
+    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    if (existing) {
+      existing.quantity -= quantity;
+      if (existing.quantity <= 0) {
+        m.holdings.splice(m.holdings.indexOf(existing), 1);
+      }
+    }
+    if (market === 'US') { m.cashUSD = (m.cashUSD || 0) + totalCost; }
+    else { m.cashKRW = (m.cashKRW || 0) + totalCost; }
+  }
+
+  m.trades.push({ date, name, ticker, market, type, quantity, price });
   saveData(); render();
-  ['tName','tQty','tPrice'].forEach(id => document.getElementById(id).value = '');
+  ['tName','tTicker','tQty','tPrice'].forEach(id => document.getElementById(id).value = '');
 }
 
 function removeTrade(idx) {
@@ -1122,7 +1465,7 @@ function renderAssetHistory(m) {
 
 function autoCalcAsset() {
   const m = getMonth(currentMonth);
-  const total = m.holdings.reduce((s, h) => s + evalKRW(h), 0) + (m.cash || 0);
+  const total = m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m);
   document.getElementById('ahAmount').value = Math.round(total);
 }
 
@@ -1165,14 +1508,14 @@ function printReport() {
   document.getElementById('rptFxRate').textContent = fmt(getFxRate());
 
   const holdingsVal = m.holdings.reduce((s, h) => s + evalKRW(h), 0);
-  const totalAsset = holdingsVal + (m.cash || 0);
+  const totalAsset = holdingsVal + getCashKRW(m);
   document.getElementById('rptTotalAsset').textContent = fmtWon(totalAsset);
 
   const months = Object.keys(data.months).sort();
   const idx = months.indexOf(currentMonth);
   if (idx > 0) {
     const prev = getMonth(months[idx - 1]);
-    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + (prev.cash || 0);
+    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(prev);
     const diff = totalAsset - prevVal;
     document.getElementById('rptMonthChange').textContent = fmtSign(diff);
     document.getElementById('rptMonthChange').className = 'summary-value ' + (diff >= 0 ? 'positive' : 'negative');
@@ -1192,9 +1535,10 @@ function printReport() {
 
   const krVal = m.holdings.filter(h=>h.market==='KR').reduce((s,h)=>s+evalKRW(h),0);
   const usVal = m.holdings.filter(h=>h.market==='US').reduce((s,h)=>s+evalKRW(h),0);
-  const cashVal = m.cash||0;
+  const cashVal = getCashKRW(m);
   const allT = krVal+usVal+cashVal;
-  document.getElementById('rptAllocation').innerHTML = allT ? `한국주식: ${fmtWon(krVal)} (${(krVal/allT*100).toFixed(1)}%) / 미국주식: ${fmtWon(usVal)} (${(usVal/allT*100).toFixed(1)}%) / 현금: ${fmtWon(cashVal)} (${(cashVal/allT*100).toFixed(1)}%)` : '-';
+  const cashDetail = (m.cashUSD && m.cashKRW) ? `현금(KRW): ${fmtWon(m.cashKRW||0)} / 현금(USD): $${fmt(m.cashUSD||0)}` : `현금: ${fmtWon(cashVal)}`;
+  document.getElementById('rptAllocation').innerHTML = allT ? `한국주식: ${fmtWon(krVal)} (${(krVal/allT*100).toFixed(1)}%) / 미국주식: ${fmtWon(usVal)} (${(usVal/allT*100).toFixed(1)}%) / ${cashDetail} (${(cashVal/allT*100).toFixed(1)}%)` : '-';
 
   document.getElementById('rptTrades').innerHTML = m.trades.length ?
     [...m.trades].sort((a,b)=>b.date.localeCompare(a.date)).map(t => `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'매수':'매도'}</td><td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td></tr>`).join('')
@@ -1249,28 +1593,65 @@ async function updatePrices() {
   const status = document.getElementById('priceUpdateStatus');
   btn.disabled = true;
   btn.textContent = '조회 중...';
-  status.textContent = '';
+  status.textContent = '일괄 조회 중...';
   status.style.color = 'var(--text-dim)';
 
+  const tickers = holdingsWithTicker.map(h => h.ticker);
   let updated = 0, failed = 0, errors = [];
 
-  for (let i = 0; i < holdingsWithTicker.length; i++) {
-    const h = holdingsWithTicker[i];
-    status.textContent = h.name + ' 조회 중... (' + (i+1) + '/' + holdingsWithTicker.length + ')';
+  // Step 1: 배치 조회 시도 (1회 API 호출로 전체)
+  const priceMap = await fetchYahooPricesBatch(tickers);
+  const batchCount = Object.keys(priceMap).length;
+
+  // Step 2: 배치에서 못 가져온 종목만 개별 조회
+  const remaining = holdingsWithTicker.filter(h => !priceMap[h.ticker]);
+  if (remaining.length > 0 && remaining.length < holdingsWithTicker.length) {
+    status.textContent = batchCount + '종목 일괄 완료, ' + remaining.length + '종목 개별 조회 중...';
+  } else if (remaining.length === holdingsWithTicker.length) {
+    status.textContent = '일괄 실패, 개별 조회 중...';
+  }
+
+  for (let i = 0; i < remaining.length; i++) {
+    const h = remaining[i];
+    status.textContent = h.name + ' 개별 조회 (' + (i+1) + '/' + remaining.length + ')';
     try {
       const price = await fetchYahooPrice(h.ticker);
-      if (price !== null && price > 0) {
-        h.currentPrice = price;
-        updated++;
-      } else {
+      if (price !== null && price > 0) priceMap[h.ticker] = price;
+    } catch(e) { /* skip */ }
+    if (i < remaining.length - 1) await new Promise(r => setTimeout(r, 1500));
+  }
+
+  // 결과 적용 (가격 검증 포함)
+  const warnings = [];
+  for (const h of holdingsWithTicker) {
+    if (priceMap[h.ticker]) {
+      const newPrice = priceMap[h.ticker];
+      const oldPrice = h.currentPrice;
+      // 기존 가격이 있을 때, ±70% 이상 변동이면 프록시 오류 가능성 → 경고 후 무시
+      if (oldPrice > 0 && Math.abs(newPrice - oldPrice) / oldPrice > 0.7) {
+        warnings.push(`${h.name}: ${oldPrice.toLocaleString()}→${newPrice.toLocaleString()} (${((newPrice/oldPrice-1)*100).toFixed(0)}% 변동, 무시됨)`);
         failed++;
-        errors.push(h.ticker);
+        errors.push(h.ticker + '⚠');
+      } else {
+        h.currentPrice = newPrice;
+        updated++;
       }
-    } catch(e) {
+    } else {
       failed++;
       errors.push(h.ticker);
     }
-    if (i < holdingsWithTicker.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+  if (warnings.length) {
+    console.warn('[시세 검증] 비정상 가격 감지:', warnings);
+    alert('⚠ 비정상 가격 변동 감지 (프록시 오류 가능):\n\n' + warnings.join('\n') + '\n\n해당 종목은 업데이트를 건너뛰었습니다.');
+  }
+
+  // 시세 업데이트 후 오늘 자산 기록 자동 갱신
+  if (updated > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    const totalAsset = Math.round(m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m));
+    m.assetHistory = m.assetHistory.filter(h => h.date !== today);
+    m.assetHistory.push({ date: today, totalAsset, note: '자동 업데이트' });
   }
 
   saveData();
@@ -1281,53 +1662,712 @@ async function updatePrices() {
 
   const timeStr = new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
   if (failed === 0) {
-    status.textContent = updated + '종목 업데이트 완료 (' + timeStr + ')';
+    status.innerHTML = updated + '종목 업데이트 완료 (' + timeStr + ')';
     status.style.color = 'var(--green)';
   } else {
-    status.textContent = updated + '종목 성공, ' + failed + '종목 실패 (' + errors.join(', ') + ')';
+    const retryTickers = errors.map(e => e.replace('⚠', '')).filter(e => e);
+    status.innerHTML = updated + '종목 성공, ' + failed + '종목 실패 (' + errors.join(', ') + ') <button class="btn btn-sm" onclick="retryFailed([' + retryTickers.map(e => "'" + e + "'").join(',') + '])" style="margin-left:6px;font-size:11px">재시도</button>';
     status.style.color = 'var(--orange)';
   }
 }
 
-async function fetchYahooPrice(ticker) {
-  const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(ticker) + '?range=1d&interval=1d';
+async function retryFailed(tickers) {
+  const m = getMonth(currentMonth);
+  const status = document.getElementById('priceUpdateStatus');
+  status.innerHTML = '실패 종목 재시도 중...';
+  status.style.color = 'var(--text-dim)';
 
-  const proxyUrls = [
-    'https://corsproxy.io/?' + encodeURIComponent(yahooUrl),
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(yahooUrl)
-  ];
-
-  for (const proxyUrl of proxyUrls) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(proxyUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) continue;
-      const text = await res.text();
-      const json = JSON.parse(text);
-      const price = json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta && json.chart.result[0].meta.regularMarketPrice;
-      if (price && price > 0) return price;
-    } catch(e) { continue; }
+  let updated = 0, failed = 0, errors = [];
+  for (let i = 0; i < tickers.length; i++) {
+    const ticker = tickers[i];
+    const h = m.holdings.find(h => h.ticker === ticker);
+    if (!h) continue;
+    status.innerHTML = h.name + ' 재시도 (' + (i+1) + '/' + tickers.length + ')';
+    const price = await fetchYahooPrice(h.ticker);
+    if (price !== null && price > 0) {
+      const oldPrice = h.currentPrice;
+      if (oldPrice > 0 && Math.abs(price - oldPrice) / oldPrice > 0.7) {
+        console.warn(`[재시도 검증] ${h.name}: ${oldPrice}→${price} 비정상 변동, 무시`);
+        failed++;
+        errors.push(h.ticker + '⚠');
+      } else {
+        h.currentPrice = price;
+        updated++;
+      }
+    } else {
+      failed++;
+      errors.push(h.ticker);
+    }
+    if (i < tickers.length - 1) await new Promise(r => setTimeout(r, 2000));
   }
 
-  // Direct attempt (works if served via local server)
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(yahooUrl, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (res.ok) {
-      const json = await res.json();
-      return json && json.chart && json.chart.result && json.chart.result[0] && json.chart.result[0].meta && json.chart.result[0].meta.regularMarketPrice || null;
-    }
-  } catch(e) {}
-
-  return null;
+  saveData(); render();
+  const timeStr = new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+  if (failed === 0) {
+    status.innerHTML = '재시도 ' + updated + '종목 성공! (' + timeStr + ')';
+    status.style.color = 'var(--green)';
+  } else {
+    status.innerHTML = '재시도: ' + updated + '성공, ' + failed + '실패 (' + errors.join(', ') + ') <button class="btn btn-sm" onclick="retryFailed([' + errors.map(e => "'" + e + "'").join(',') + '])" style="margin-left:6px;font-size:11px">재시도</button>';
+    status.style.color = 'var(--orange)';
+  }
 }
+
+// ============ STOCK SEARCH ============
+function fetchWithTimeout(url, ms) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), ms);
+  return fetch(url, { signal: c.signal }).finally(() => clearTimeout(t));
+}
+
+// 한국 전체 종목 DB (KRX 2613개 종목)
+const KR_STOCKS_RAW = [['279570','케이뱅크'],['217590','티엠씨'],['317450','명인제약'],['439260','대한조선'],['483650','달바글로벌'],['480370','씨케이솔루션'],['031210','서울보증보험'],['064400','LG씨엔에스'],['499790','GS피앤엘'],['484870','엠앤씨솔루션'],['415640','KB발해인프라'],['475560','더본코리아'],['489790','한화비전'],['079900','전진건설로봇'],['487570','HS효성'],['062040','산일전기'],['462870','시프트업'],['481850','신한글로벌액티브리츠'],['034230','파라다이스'],['443060','HD현대마린솔루션'],['475150','SK이터닉스'],['278470','에이피알'],['066970','엘앤에프'],['022100','포스코DX'],['017860','DS단석'],['111380','동인기연'],['450080','에코프로머티'],['454910','두산로보틱스'],['465770','STX그린로지스'],['092790','넥스틸'],['030190','NICE평가정보'],['462520','조선내화'],['090460','비에이치'],['460850','동국씨엠'],['460860','동국제강'],['457190','이수스페셜티케미컬'],['456040','OCI'],['100090','SK오션플랜트'],['448730','삼성FN리츠'],['453340','현대그린푸드'],['452260','한화갤러리아'],['451800','한화리츠'],['377740','바이오노트'],['446070','유니드비티플러스'],['108320','LX세미콘'],['432320','KB스타리츠'],['403550','쏘카'],['126720','수산인더스트리'],['357430','마스턴프리미어리츠'],['417310','코람코더원리츠'],['373220','LG에너지솔루션'],['404990','신한서부티엔디리츠'],['396690','미래에셋글로벌리츠'],['402340','SK스퀘어'],['400760','NH올원리츠'],['377300','카카오페이'],['381970','케이카'],['329180','HD현대중공업'],['395400','SK리츠'],['271940','일진하이솔루스'],['377190','디앤디플랫폼리츠'],['139990','아주스틸'],['089860','롯데렌탈'],['372910','한컴라이프케어'],['259960','크래프톤'],['178920','PI첨단소재'],['323410','카카오뱅크'],['137310','에스디바이오센서'],['097520','엠씨넥스'],['383800','LX홀딩스'],['383220','F&F'],['361610','SK아이이테크놀로지'],['302440','SK바이오사이언스'],['378850','화승알앤에이'],['950210','프레스티지바이오파마'],['248070','솔루엠'],['375500','DL이앤씨'],['365550','ESR켄달스퀘어리츠'],['009900','명신산업'],['244920','에이플러스에셋'],['339770','교촌에프앤비'],['352820','하이브'],['363280','티와이홀딩스'],['357120','코람코라이프인프라리츠'],['348950','제이알글로벌리츠'],['357250','미래에셋맵스리츠'],['350520','이지스레지던스리츠'],['334890','이지스밸류플러스리츠'],['326030','에스케이바이오팜'],['353200','대덕전자'],['344820','케이씨씨글라스'],['338100','NH프라임리츠'],['308170','씨티알모빌리티'],['322000','HD현대에너지솔루션'],['272210','한화시스템'],['317400','자이에스앤디'],['330590','롯데리츠'],['013890','지누스'],['336260','두산퓨얼셀'],['336370','솔루스첨단소재'],['036420','콘텐트리중앙'],['003670','포스코퓨처엠'],['307950','현대오토에버'],['192650','드림텍'],['192080','더블유게임즈'],['316140','우리금융지주'],['298690','에어부산'],['267850','아시아나IDT'],['306200','세아제강'],['293480','하나제약'],['010400','우진아이엔에스'],['293940','신한알파리츠'],['300720','한일시멘트'],['091810','트리니티항공'],['286940','롯데이노베이트'],['298050','HS효성첨단소재'],['298040','효성중공업'],['298020','효성티앤씨'],['298000','효성화학'],['088260','이리츠코크렙'],['294870','IPARK현대산업개발'],['018250','애경산업'],['068270','셀트리온'],['284740','쿠쿠홈시스'],['285130','SK케미칼'],['282330','BGF리테일'],['092780','DYP'],['272450','진에어'],['281820','케이씨텍'],['272550','삼양패키징'],['055490','테이팩스'],['280360','롯데웰푸드'],['271980','제일약품'],['035720','카카오'],['271560','오리온'],['268280','미원에스씨'],['267290','경동도시가스'],['251270','넷마블'],['267270','HD건설기계'],['267250','HD현대'],['267260','HD현대일렉트릭'],['264900','크라운제과'],['145720','덴티움'],['111110','호전실업'],['143210','핸즈코퍼레이션'],['241560','두산밥캣'],['207940','삼성바이오로직스'],['234080','JW생명과학'],['241590','화승엔터프라이즈'],['229640','LS에코에너지'],['204210','스타에스엠리츠'],['249420','일동제약'],['248170','샘표식품'],['016740','두올'],['026960','동서'],['123890','한국자산신탁'],['034830','한국토지신탁'],['195870','해성디에스'],['070960','모나용평'],['101530','해태제과식품'],['004440','삼일씨엔에스'],['194370','제이에스코퍼레이션'],['226320','잇츠한불'],['075580','세진중공업'],['214330','금호에이치티'],['089590','제주항공'],['227840','현대코퍼레이션홀딩스'],['079550','LIG디펜스앤에어로스페이스'],['039570','HDC랩스'],['002690','동일제강'],['095570','AJ네트웍스'],['214320','이노션'],['214420','토니모리'],['085620','미래에셋생명'],['214390','경보제약'],['210980','SK디앤디'],['145210','다이나믹디자인'],['213500','한솔제지'],['210540','디와이파워'],['028260','삼성물산'],['112610','씨에스윈드'],['018260','삼성에스디에스'],['204320','HL만도'],['200880','서연이화'],['192400','쿠쿠홀딩스'],['133820','화인베스틸'],['027410','BGF'],['192820','코스맥스'],['185750','종근당'],['006880','신송홀딩스'],['183190','아세아시멘트'],['064350','현대로템'],['180640','한진칼'],['181710','NHN'],['175330','JB금융지주'],['155660','DSR'],['170900','동아에스티'],['013870','지엠비코리아'],['037560','LG헬로비전'],['163560','동일고무벨트'],['161890','한국콜마'],['161390','한국타이어앤테크놀로지'],['161000','애경케미칼'],['014710','사조씨푸드'],['152550','한국ANKOR유전'],['079980','휴비스'],['145270','케이탑리츠'],['007070','GS리테일'],['129260','인터지스'],['145990','삼양사'],['039130','하나투어'],['078520','에이블씨엔씨'],['023000','삼원강재'],['031430','신세계인터내셔날'],['140910','에이리츠'],['047810','한국항공우주'],['071840','롯데하이마트'],['069640','한세엠케이'],['139480','이마트'],['139130','iM금융지주'],['053210','케이티스카이라이프'],['138040','메리츠금융지주'],['023350','한국종합기술'],['138930','BNK금융지주'],['020150','롯데에너지머티리얼즈'],['011210','현대위아'],['136490','선진'],['134380','미원화학'],['134790','시디즈'],['082740','한화엔진'],['117580','대성에너지'],['126560','현대퓨처넷'],['058860','KTis'],['130660','한전산업'],['900140','엘브이엠씨'],['081660','미스토홀딩스'],['058850','KTcs'],['057050','현대홈쇼핑'],['002150','도화엔지니어링'],['128820','대성산업'],['122900','아이마켓코리아'],['128940','한미약품'],['105840','우진'],['033920','무학'],['102460','이연제약'],['123690','한국화장품'],['123700','에스제이엠'],['060980','HL홀딩스'],['032830','삼성생명'],['031440','신세계푸드'],['088350','한화생명'],['120030','조선선재'],['120110','코오롱인더'],['119650','KC코트렐'],['071320','지역난방공사'],['012160','영흥'],['118000','메타케어'],['052690','한전기술'],['114090','GKL'],['034730','SK'],['032560','황금에스티'],['000080','하이트진로'],['082640','동양생명'],['047400','유니온머티리얼'],['093240','형지엘리트'],['039490','키움증권'],['111770','영원무역'],['053690','한미글로벌'],['028100','동아지질'],['071970','HD현대마린엔진'],['108670','LX하우시스'],['105630','한세실업'],['109070','주성코퍼레이션'],['107590','미원홀딩스'],['035420','NAVER'],['026940','부국철강'],['105560','KB금융'],['104700','한국철강'],['103590','일진전기'],['103140','풍산'],['011070','LG이노텍'],['017180','명문제약'],['100220','비상교육'],['102260','동성케미컬'],['032640','LG유플러스'],['101140','인바이오젠'],['020560','아시아나항공'],['100840','SNT에너지'],['100250','진양홀딩스'],['085310','엔케이'],['051600','한전KPS'],['092440','기신정기'],['044450','KSS해운'],['094280','효성 ITX'],['033270','유나이티드'],['092200','디아이씨'],['097950','CJ제일제당'],['028670','팬오션'],['097230','HJ중공업'],['096760','JW홀딩스'],['096770','SK이노베이션'],['029780','삼성카드'],['001780','알루코'],['095720','웅진씽크빅'],['094800','맵스리얼티'],['090370','메타랩스'],['093370','후성'],['093050','LF'],['044380','주연테크'],['044820','코스맥스비티아이'],['034590','인천도시가스'],['009770','삼정펄프'],['092220','KEC'],['092230','KPX홀딩스'],['089470','HDC현대EP'],['090350','노루페인트'],['090430','아모레퍼시픽'],['032350','롯데관광개발'],['090080','평화산업'],['049800','우진플라임'],['035510','신세계I&C'],['088790','진도'],['088980','맥쿼리인프라'],['023530','롯데쇼핑'],['086280','현대글로비스'],['084870','티비에이치글로벌'],['086790','하나금융지주'],['001560','제일연마'],['079430','현대리바트'],['084010','대한제강'],['075180','새론오토모티브'],['083420','그린케미칼'],['084690','대상홀딩스'],['071950','코아스'],['084680','이월드'],['084670','동양고속'],['042700','한미반도체'],['004890','동일산업'],['010960','삼호개발'],['073240','금호타이어'],['079160','CJ CGV'],['081000','일진다이아'],['014830','유니드'],['041650','상신브레이크'],['023810','인팩'],['078930','GS'],['077500','유니퀘스트'],['058730','다스코'],['034220','LG디스플레이'],['078000','텔코웨어'],['077970','STX엔진'],['034310','NICE'],['019680','대교'],['024110','기업은행'],['074610','이엔플러스'],['025750','한솔홈데코'],['007660','이수페타시스'],['035250','강원랜드'],['037270','YG PLUS'],['072710','농심홀딩스'],['071050','한국금융지주'],['072130','유엔젤'],['034120','SBS'],['036570','NC'],['071090','하이스틸'],['069730','DSR제강'],['006890','태경케미컬'],['011500','한농화성'],['069960','현대백화점'],['069460','대호에이엘'],['069620','대웅제약'],['027740','마니커'],['036530','SNT홀딩스'],['069260','티케이지휴켐스'],['033530','SJG세종'],['058430','포스코스틸리온'],['068290','삼성출판사'],['067830','세이브존I&C'],['030610','교보증권'],['009240','한샘'],['017370','우신시스템'],['066570','LG전자'],['024720','콜마홀딩스'],['064960','SNT모티브'],['037710','광주신세계'],['020760','일진디스플'],['063160','종근당바이오'],['055550','신한지주'],['021240','코웨이'],['058650','세아홀딩스'],['051900','LG생활건강'],['051910','LG화학'],['047040','대우건설'],['047050','포스코인터내셔널'],['042660','한화오션'],['051630','진양화학'],['034020','두산에너빌리티'],['010040','한국내화'],['016450','한세예스24홀딩스'],['016710','대성홀딩스'],['003220','대원제약'],['036460','한국가스공사'],['007120','미래아이앤지'],['000850','화천기공'],['036580','팜스코'],['033780','케이티앤지'],['009540','HD한국조선해양'],['024090','디씨엠'],['006840','AK홀딩스'],['035000','HS애드'],['006650','대한유화'],['035150','백산'],['033250','체시스'],['033240','자화전자'],['030200','케이티'],['019490','엑시큐어하이트론'],['030000','제일기획'],['026890','스틱인베스트먼트'],['029460','케이씨'],['024890','대원화성'],['017940','E1'],['018670','SK가스'],['023590','다우기술'],['014440','영보화학'],['011790','SKC'],['025890','한국주강'],['024900','디와이덕양'],['023960','에쓰씨엔지니어링'],['023800','인지컨트롤스'],['012320','경동인베스트'],['031820','아이티센씨티에스'],['025530','에스제이엠홀딩스'],['000660','SK하이닉스'],['015360','INVENI'],['023150','MH에탄올'],['023450','동남합성'],['028050','삼성E&A'],['029530','신도리코'],['005320','온타이드'],['016800','퍼시스'],['024070','WISCOM'],['030720','동원수산'],['025560','미래산업'],['030210','다올투자증권'],['012630','HDC'],['017900','광전자'],['025540','한국단자공업'],['003160','디아이'],['011930','신성이엔지'],['019180','티에이치엔'],['018880','한온시스템'],['006740','블루산업개발'],['021820','세원정공'],['000910','유니온'],['020120','키다리스튜디오'],['027970','한국제지'],['020000','한섬'],['017800','현대엘리베이터'],['016580','환인제약'],['013580','계룡건설산업'],['021050','서원'],['012750','에스원'],['015890','태경산업'],['016590','신대양제지'],['011690','와이투솔루션'],['025860','남해화학'],['018500','동원금속'],['011300','우성머티리얼스'],['011200','HMM'],['012610','경인양행'],['017810','풀무원'],['017390','서울도시가스'],['025820','이구산업'],['011090','에넥스'],['007460','에이프로젠'],['025620','차AI헬스케어'],['017960','한국카본'],['025000','KPX케미칼'],['007980','TP'],['010580','에스엠벡셀'],['009440','KC그린홀딩스'],['008420','문배철강'],['016880','웅진'],['014790','HL D&I'],['007310','오뚜기'],['008500','일정실업'],['010120','엘에스일렉트릭'],['009190','대양금속'],['000760','이화산업'],['014820','동원시스템즈'],['010140','삼성중공업'],['009680','모토닉'],['010690','화신'],['000390','SP삼화'],['009450','경동나비엔'],['012030','DB'],['005090','SGC에너지'],['005750','대림바스'],['005880','대한해운'],['005870','휴니드테크놀러지스'],['017550','수산세보틱스'],['011170','롯데케미칼'],['001430','세아베스틸지주'],['008770','호텔신라'],['014580','태경비케이'],['013520','화승코퍼레이션'],['004080','신흥'],['006060','화승인더스트리'],['014530','극동유화'],['002140','고려산업'],['016090','대현'],['001620','케이비아이동국실업'],['017040','광명전기'],['011390','부산산업'],['011810','STX'],['010130','고려아연'],['004720','팜젠사이언스'],['009200','무림페이퍼'],['001500','현대차증권'],['008870','금비'],['005820','원림'],['008490','서흥'],['014910','성문전자'],['003580','HLB글로벌'],['015860','일진홀딩스'],['014160','대영포장'],['012280','영화금속'],['019170','신풍제약'],['002210','동성제약'],['012170','아센디오'],['009420','한올바이오파마'],['011330','유니켐'],['012800','대창'],['013360','일성건설'],['013700','까뮤이앤씨'],['002760','보락'],['007610','선도전기'],['004920','씨아이테크'],['009290','광동제약'],['011420','갤럭시아에스엠'],['004270','남성'],['001940','KISCO홀딩스'],['009410','태영건설'],['007280','한국특강'],['009180','한솔로지스틱스'],['002170','SYTS'],['017670','SK텔레콤'],['010640','진양폴리우레탄'],['003650','미창석유공업'],['004380','삼익THK'],['002840','미원상사'],['007860','서연'],['013000','세우글로벌'],['012330','현대모비스'],['001390','KG케미칼'],['009320','아진전자부품'],['001450','현대해상'],['005440','현대지에프홀딩스'],['015760','한국전력공사'],['007690','국도화학'],['006280','녹십자'],['009160','SIMPAC'],['008600','윌비스'],['015230','대창단조'],['007160','사조산업'],['014130','한익스프레스'],['008040','사조동아원'],['009140','경인전자'],['009580','무림P&P'],['014990','인디에프'],['013570','디와이'],['003610','방림'],['015590','DKME'],['014680','한솔케미칼'],['010820','퍼스텍'],['006040','동원산업'],['008060','대덕'],['003680','한성기업'],['015020','이스타코'],['011280','태림포장'],['002310','아세아제지'],['010660','화천기계'],['011150','CJ씨푸드'],['001770','SHD'],['018470','조일알미늄'],['005850','에스엘'],['009970','영원무역홀딩스'],['012510','더존비즈온'],['003850','보령'],['008250','이건산업'],['012690','모나리자'],['006370','대구백화점'],['006980','우성'],['002920','유성기업'],['002220','한일철강'],['002450','삼익악기'],['002460','HS화성'],['007340','DN오토모티브'],['000890','보해양조'],['001290','상상인증권'],['003010','혜인'],['014280','금강공업'],['009810','플레이그램'],['008730','율촌화학'],['009270','신원'],['004140','동방'],['002960','한국쉘석유'],['003000','부광약품'],['005810','풍산홀딩스'],['001270','부국증권'],['012200','계양전기'],['004710','한솔테크닉스'],['016610','DB증권'],['008930','한미사이언스'],['005500','삼진제약'],['005490','POSCO홀딩스'],['002410','범양건영'],['005690','파미셀'],['001230','동국홀딩스'],['006340','대원전선'],['005950','이수화학'],['016360','삼성증권'],['002810','삼영무역'],['001750','한양증권'],['011780','금호석유화학'],['003470','유안타증권'],['002620','제일파마홀딩스'],['015260','에이엔피'],['009460','한창제지'],['005720','넥센'],['006660','삼성공조'],['004490','세방전지'],['011000','진원생명과학'],['009310','참엔지니어링'],['010100','한국무브넥스'],['005070','코스모신소재'],['004830','덕성'],['001720','신영증권'],['001200','유진증권'],['003460','유화증권'],['011700','한신기계공업'],['005420','코스모화학'],['000500','가온전선'],['010950','S-Oil'],['012450','한화에어로스페이스'],['011230','삼화전자공업'],['004020','현대제철'],['004770','써니전자'],['004560','현대비앤지스틸'],['006090','사조오양'],['003530','한화투자증권'],['009470','삼화전기'],['001510','SK증권'],['010770','평화홀딩스'],['007110','일신석재'],['016380','KG스틸'],['010780','아이에스동서'],['002360','SH에너지화학'],['003830','대한화섬'],['007810','코리아써키트'],['004170','신세계'],['010060','OCI홀딩스'],['000520','삼일제약'],['006490','인스코비'],['003120','일성아이에스'],['000720','현대건설'],['002710','TCC스틸'],['003060','에이프로젠바이오로직스'],['007700','F&F 홀딩스'],['008700','아남전자'],['006360','GS건설'],['006110','삼아알미늄'],['006200','한국전자홀딩스'],['006400','삼성SDI'],['009150','삼성전기'],['005960','동부건설'],['009070','케이씨티시'],['003070','코오롱글로벌'],['005180','빙그레'],['005250','녹십자홀딩스'],['000480','시알홀딩스'],['004310','현대약품'],['003920','남양유업'],['008350','남선알미늄'],['003350','한국화장품제조'],['011760','현대코퍼레이션'],['006260','LS'],['001740','SK네트웍스'],['002100','경농'],['004870','티웨이홀딩스'],['007590','동방아그로'],['004430','송원산업'],['002780','진흥기업'],['004090','한국석유공업'],['000650','천일고속'],['000430','대원강업'],['001080','만호제강'],['004700','조광피혁'],['004360','세방'],['008970','KBI동양철관'],['002880','디와이에이'],['001260','남광토건'],['005680','삼영전자공업'],['005800','신영와코루'],['002630','오리엔트바이오'],['001550','조비'],['005430','한국공항'],['004910','조광페인트'],['003080','SB성보'],['004690','삼천리'],['002600','조흥'],['001570','금양'],['003960','사조대림'],['002070','비비안'],['003570','SNT다이내믹스'],['004960','한신공영'],['004370','농심'],['003720','삼영'],['004980','성신양회'],['004970','신라교역'],['002870','신풍'],['001630','종근당홀딩스'],['005740','크라운해태홀딩스'],['002390','한독'],['001380','SG글로벌'],['006120','SK디스커버리'],['007540','샘표'],['003280','흥아해운'],['001250','GS글로벌'],['002990','금호건설'],['001470','삼부토건'],['001820','삼화콘덴서공업'],['001020','페이퍼코리아'],['001520','동양'],['000880','한화'],['001060','JW중외제약'],['000670','영풍'],['001340','PKC'],['000180','성창기업지주'],['005110','한창'],['004450','삼화왕관'],['000040','KR모터스'],['002240','고려제강'],['004100','태양금속공업'],['002820','SUN&L'],['004840','DRB동일'],['002350','넥센타이어'],['004060','SG세계물산'],['004000','롯데정밀화학'],['000020','동화약품'],['000210','DL'],['001120','LX인터내셔널'],['002720','국제약품'],['003240','태광산업'],['005030','부산주공'],['000590','CS홀딩스'],['000990','DB하이텍'],['006570','대림통상'],['000220','유유제약'],['000860','강남제비스코'],['003540','대신증권'],['005940','NH투자증권'],['006800','미래에셋증권'],['002700','신일전자'],['001360','삼성제약'],['000810','삼성화재해상보험'],['003230','삼양식품'],['000370','한화손해보험'],['008260','NI스틸'],['000230','일동홀딩스'],['000490','대동'],['001800','오리온홀딩스'],['004540','깨끗한나라'],['001420','태원물산'],['002020','코오롱'],['005930','삼성전자'],['000300','DH오토넥스'],['001460','BYC'],['003620','KG모빌리티'],['005610','삼립'],['000540','흥국화재'],['007570','일양약품'],['002320','한진'],['002200','한국수출포장공업'],['005380','현대자동차'],['005360','모나미'],['009830','한화솔루션'],['002030','아세아'],['006380','카프로'],['004990','롯데지주'],['001070','대한방직'],['004410','서울식품공업'],['000680','LS네트웍스'],['001210','금호전기'],['000140','하이트진로홀딩스'],['000320','노루홀딩스'],['000270','기아'],['004800','효성'],['001040','CJ'],['000150','두산'],['005010','휴스틸'],['005830','DB손해보험'],['002900','TYM'],['003090','대웅'],['003780','진양산업'],['003520','영진약품'],['002380','케이씨씨'],['005300','롯데칠성음료'],['003200','일신방직'],['002790','아모레퍼시픽홀딩스'],['006220','제주은행'],['004150','한솔홀딩스'],['007210','벽산'],['000400','롯데손해보험'],['001130','대한제분'],['001680','대상'],['003550','LG'],['000640','동아쏘시오홀딩스'],['003690','코리안리'],['000970','한국주철관공업'],['003300','한일홀딩스'],['004250','엔피씨'],['003030','세아제강지주'],['001440','대한전선'],['001790','대한제당'],['000070','삼양홀딩스'],['002420','세기상사'],['000240','한국앤컴퍼니'],['000950','전방'],['003490','대한항공'],['001530','디아이동일'],['000100','유한양행'],['000120','CJ대한통운'],['000050','경방'],['000700','유수홀딩스'],['003480','한진중공업홀딩스'],['394420','리센스메디컬'],['408470','한패스'],['493280','아이엠바이오로직스'],['458350','에스팀'],['493330','지에프아이'],['012210','삼미금속'],['490470','세미파이브'],['491000','리브스메드'],['476830','알지노믹스'],['478340','나라스페이스테크놀로지'],['464490','쿼드메디슨'],['466690','키움히어로제1호스팩'],['261520','이지스'],['950250','테라뷰'],['488900','비츠로넥스텍'],['388210','씨엠티엑스'],['403850','더핑크퐁컴퍼니'],['459550','알트'],['061090','세나테크놀로지'],['494120','큐리오시스'],['469610','이노테크'],['486990','노타'],['014950','삼익제약'],['488280','에스투더블유'],['342870','오아'],['318060','그래피'],['397810','애드포러스'],['125490','한라캐스트'],['484590','삼양컴텍'],['456160','지투지바이오'],['309710','아이티켐'],['468530','프로티나'],['475230','엔알비'],['380550','뉴로핏'],['484120','도우인시스'],['331740','아우토크립트'],['462310','뉴키즈온'],['234030','싸이닉솔루션'],['463020','뉴엔AI'],['388610','지에프씨생명과학'],['455180','케이지에이'],['340450','지씨지놈'],['474650','링크솔루션'],['475430','키스트론'],['496070','신한제16호스팩'],['287840','인투셀'],['489460','바이오비쥬'],['424870','이뮨온시아'],['188040','바이오포트'],['125020','티씨머티리얼즈'],['376900','로킷헬스케어'],['476040','오가노이드사이언스'],['136150','원일티엔아이'],['459510','나우로보틱스'],['364950','에이아이코리아'],['081180','쎄크'],['448900','한국피아이엠'],['481070','에이유브랜즈'],['101970','우양에이치씨'],['462860','더즌'],['444530','심플랫폼'],['484810','티엑스알로보틱스'],['098070','한텍'],['498390','한화플러스제5호스팩'],['460870','에스엠씨지'],['226590','엠디바이스'],['393970','대진첨단소재'],['435570','에르코스'],['489500','엘케이켐'],['479960','위너스일렉'],['463480','모티브링크'],['303810','동국생명과학'],['475830','오름테라퓨틱'],['240550','동방메디컬'],['212710','아이에스티이'],['462980','아이지넷'],['452450','피아이이'],['482630','삼양엔씨켐'],['373160','데이원컴퍼니'],['450950','아스테라시스'],['096250','와이즈넛'],['475460','미트박스'],['493790','유안타제17호스팩'],['478560','블랙야크아이앤씨'],['432980','엠에프씨'],['387570','파인메딕스'],['177900','쓰리에이로직스'],['487360','신한제14호스팩'],['176750','듀켐바이오'],['487720','키움제10호스팩'],['398120','에스지헬스케어'],['476060','온코닉테라퓨틱스'],['382150','온코크로스'],['457600','벡트'],['471820','셀로맥스사이언스'],['492220','KB제31호스팩'],['489480','키움제11호스팩'],['489730','디비금융제13호스팩'],['489210','교보17호스팩'],['482690','대신밸런스제19호스팩'],['459100','위츠'],['389680','유디엠텍'],['474610','RF시스템즈'],['466410','사이냅소프트'],['484130','하나34호스팩'],['475660','에스켐'],['413390','엠오티'],['487830','신한제15호스팩'],['394800','쓰리빌리언'],['464580','닷밀'],['473980','노머스'],['163280','에어레인'],['475960','토모큐브'],['376270','HEM파마'],['475580','에이럭스'],['336680','탑런토탈솔루션'],['458650','성우'],['488060','유진스팩11호'],['466100','클로봇'],['044990','에이치엔에스하이텍'],['289930','웨이비스'],['475400','씨메스로보틱스'],['457370','한켐'],['474170','루미르'],['209640','와이제이링크'],['465480','인스피언'],['308430','셀비온'],['381620','제닉스로보틱스'],['351870','차이커뮤니케이션'],['486630','KB제30호스팩'],['464500','아이언디바이스'],['482680','미래에셋비전스팩7호'],['469750','아이비젼웍스'],['461300','아이스크림미디어'],['456070','이엔셀'],['476080','M83'],['464280','티디에스팜'],['389650','넥스트바이오메디컬'],['431190','케이쓰리아이'],['088340','유라클'],['482520','교보16호스팩'],['199480','뱅크웨어글로벌'],['460470','아이빔테크놀로지'],['460940','피앤에스로보틱스'],['481890','엔에이치스팩31호'],['473950','SK증권제13호스팩'],['373110','엑셀세라퓨틱스'],['478110','이베스트스팩6호'],['450330','하스'],['462350','이노스페이스'],['295310','에이치브이엠'],['160190','하이젠알앤엠'],['479880','한국제15호스팩'],['464080','에스오에스랩'],['478440','미래에셋비전스팩6호'],['477340','에이치엠씨제7호스팩'],['107640','한중엔시에스'],['478390','KB제29호스팩'],['477470','미래에셋비전스팩5호'],['458870','씨어스'],['477760','디비금융스팩12호'],['462510','라메디텍'],['453450','그리드위즈'],['323350','다원넥스뷰'],['477380','미래에셋비전스팩4호'],['145170','노브랜드'],['456010','아이씨티케이'],['473000','SK증권제12호스팩'],['126730','코칩'],['452200','민테크'],['140430','카티스'],['347850','디앤디파마텍'],['474490','유안타제16호스팩'],['412540','제일엠앤에스'],['451250','삐아'],['475250','하나33호스팩'],['474930','신한제13호스팩'],['474660','신한제12호스팩'],['461030','아이엠비디엑스'],['475240','하나32호스팩'],['455900','엔젤로보틱스'],['420570','제이투케이바이오'],['437730','삼현'],['036220','오상헬스케어'],['199430','케이엔알시스템'],['469900','하나31호스팩'],['472230','SK증권제11호스팩'],['473050','유안타제15호스팩'],['468760','유진스팩10호'],['418620','E8'],['360350','코셈'],['068100','케이웨더'],['452430','사피엔반도체'],['443670','에스피소프트'],['415380','스튜디오삼익'],['472220','신영스팩10호'],['472850','폰드그룹'],['469480','IBKS제24호스팩'],['199550','레이저옵텍'],['452400','이닉스'],['105760','포스뱅크'],['460930','현대힘스'],['440290','HB인베스트먼트'],['362990','드림인사이트'],['471050','대신밸런스제17호스팩'],['457550','우진엔텍'],['452190','한빛레이저'],['467930','IBKS제23호스팩'],['469880','하나30호스팩'],['109670','씨싸이트'],['439580','블루엠텍'],['417200','LS머트리얼즈'],['432470','케이엔에스'],['465320','교보15호스팩'],['338840','와이바이오로직스'],['355690','에이텀'],['466910','엔에이치스팩30호'],['453860','에이에스텍'],['402490','그린리소스'],['452160','제이엔비'],['452280','한선엔지니어링'],['448280','에코아이'],['352090','스톰테크'],['452300','캡스톤파트너스'],['365330','에스와이스틸텍'],['445090','에이직랜드'],['464440','한국제13호스팩'],['446540','메가터치'],['413640','비아이매트릭스'],['451760','컨텍'],['372320','큐로셀'],['088280','쏘닉스'],['464680','KB제27호스팩'],['188260','세니젠'],['290560','파라택시스이더리움'],['240600','유진테크놀로지'],['221800','지구홀딩스'],['432720','퀄리타스반도체'],['396470','워트'],['246250','에스엘에스바이오'],['416180','신성에스티'],['445180','퓨릿'],['462020','에이치엠씨제6호스팩'],['451220','아이엠티'],['443250','레뷰코퍼레이션'],['452980','신한제11호스팩'],['430690','한싹'],['418470','KT밀리의서재'],['450520','인스웨이브'],['403490','우듬지팜'],['384470','코어라인소프트'],['146060','율촌'],['355390','크라우드웍스'],['418250','시큐레터'],['424960','스마트레이더시스템'],['210120','캔버스엔'],['448710','코츠테크놀로지'],['445680','큐리옥스바이오시스템즈'],['440110','파두'],['373170','엠아이큐브솔루션'],['429270','시지트로닉스'],['172670','에이엘티'],['388870','파로스아이바이오'],['438700','버넥트'],['406820','뷰티스킨'],['432430','와이랩'],['321370','센서뷰'],['378340','필에너지'],['274400','이노시뮬레이션'],['354320','알멕'],['440320','오픈놀'],['232830','아이티센피엔에스'],['451700','엔에이치스팩29호'],['303360','프로티아'],['348080','큐라티스'],['439090','마녀공장'],['405920','나라셀라'],['285800','진영'],['420770','기가비스'],['271830','팸텍'],['434480','모니터랩'],['340810','시선AI'],['446840','지슨'],['417790','트루엔'],['304360','에스바이오메딕스'],['298830','슈어소프트테크'],['393210','토마토시스템'],['424980','마이크로투나노'],['318160','셀바이오휴먼텍'],['358570','지아이이노베이션'],['309960','LB인베스트먼트'],['356680','엑스게이트'],['282720','금양그린파워'],['418420','라온텍'],['389020','자람테크놀로지'],['417010','나노팀'],['199730','바이오인프라'],['344860','이노진'],['127980','화인써키트'],['418550','제이오'],['411080','샌즈랩'],['407400','꿈비'],['408900','스튜디오미르'],['419050','삼기에너지솔루션즈'],['417860','오브젠'],['254490','미래반도체'],['425040','티이엠씨'],['198940','한주라이트메탈'],['380540','옵티코어'],['162300','신스틸'],['417180','핑거스토리'],['419530','SAMG엔터'],['168360','펨트론'],['389470','인벤티지랩'],['419080','엔젯'],['084440','유비온'],['204610','티쓰리'],['425420','티에프이'],['372170','윤성에프앤씨'],['383930','디티앤씨알오'],['348340','뉴로메카'],['417500','제이아이테크'],['405100','큐알티'],['417840','저스템'],['419120','산돌'],['405000','플라즈맵'],['291810','핀텔'],['378800','샤페론'],['419540','비스토스'],['360070','탑머티리얼'],['389500','에스비비테크'],['368970','오에스피'],['417970','모델솔루션'],['296640','이노에이엑스'],['441270','파인엠텍'],['067370','선바이오'],['393890','더블유씨피'],['314140','알피바이오'],['394280','오픈엣지테크놀로지'],['129920','대성하이텍'],['148930','에이치와이티씨'],['107600','새빗켐'],['368600','아이씨에이치'],['365340','성일하이텍'],['397030','에이프릴바이오'],['424760','벨로크'],['328130','루닛'],['403870','HPSP'],['112290','와이씨켐'],['402030','코난테크놀로지'],['396270','넥스트칩'],['412350','레이저쎌'],['310210','보로노이'],['377460','큐에이드'],['148780','비큐AI'],['382900','범한퓨얼셀'],['362320','청담글로벌'],['399720','가온칩스'],['389260','대명에너지'],['389140','포바이포'],['388050','지투파워'],['413630','씨피시스템'],['396300','세아메카닉스'],['366030','공구우먼'],['388720','유일로보틱스'],['288980','모아데이타'],['408920','메쎄이상'],['376930','노을'],['146320','비씨엔씨'],['371950','풍원정밀'],['330730','스톤브릿지벤처스'],['365900','브이씨'],['370090','퓨런티어'],['251120','바이오에프디엔씨'],['211050','인카금융서비스'],['137080','나래나노텍'],['136410','아셈스'],['276040','스코넥'],['377330','이지트로닉스'],['179530','애드바이오텍'],['102370','케이옥션'],['353590','오토앤'],['200350','아티스트스튜디오'],['199800','툴젠'],['377480','마음AI'],['361570','알비더블유'],['222160','NPX'],['290090','트윔'],['372800','아이티아이즈'],['311320','지오엘리먼트'],['357880','SKAI'],['376300','디어유'],['389030','지니너스'],['376180','피코그램'],['348370','엔켐'],['377450','리파인'],['382800','지앤비에스 에코'],['114840','아이패밀리에스씨'],['261780','차백신연구소'],['382480','지아이텍'],['391710','코닉오토메이션'],['376290','씨유테크'],['159010','아스플로'],['382840','원준'],['257720','실리콘투'],['260970','에스앤디'],['377220','프롬바이오'],['099430','바이오플러스'],['273640','와이엠텍'],['203400','에이비온'],['388790','라이콤'],['308080','바이젠셀'],['099390','브레인즈컴퍼니'],['315640','딥노이드'],['058970','엠로'],['367000','플래티어'],['376980','원티드랩'],['195940','HK이노엔'],['270660','에브리봇'],['377030','비트맥스'],['365270','큐라클'],['352910','오비고'],['357580','아모센스'],['303530','이노뎁'],['232680','라온로보틱스'],['187660','페니트리움바이오'],['383310','에코프로에이치엔'],['363250','진시스템'],['276730','한울앤제주'],['361670','삼영에스앤씨'],['252990','샘씨엔에스'],['352480','씨앤씨인터내셔널'],['357230','에이치피오'],['294570','쿠콘'],['351330','이삭엔지니어링'],['059270','해성에어로보틱스'],['333620','엔시스'],['289220','자이언트스텝'],['361390','제노코'],['347700','스피어'],['314930','바이오다인'],['950220','네오이뮨텍'],['356890','싸이버원'],['334970','프레스티지바이오로직스'],['247660','나노씨엠에스'],['338220','뷰노'],['373200','엑스플러스'],['340930','유일에너테크'],['189330','씨이랩'],['322310','오로스테크놀로지'],['239890','피엔에이치테크'],['363260','모비데이즈'],['262840','아이퀘스트'],['277810','레인보우로보틱스'],['321820','아티스트컴퍼니'],['163730','핑거'],['348030','모비릭스'],['352700','씨앤투스'],['086710','선진뷰티사이언스'],['236810','엔비티'],['368770','파이버프로'],['369370','블리츠웨이엔터테인먼트'],['357550','석경에이티'],['314130','지놈앤컴퍼니'],['335810','프리시젼바이오'],['347860','알체라'],['365590','하이딥'],['064850','에프앤가이드'],['356860','티엘비'],['352940','인바이오'],['354200','엔젠바이오'],['317690','퀀타매트릭스'],['352770','셀레스트라'],['318020','포인트모바일'],['129890','앱코'],['265740','엔에프씨'],['199820','제일일렉트릭'],['299030','하나기술'],['340570','티앤엘'],['348150','고바이오랩'],['330860','네패스아크'],['290690','소룩스'],['348350','위드텍'],['347000','센코'],['301300','바이브컴퍼니'],['214610','롤링스톤'],['304840','피플바이오'],['348210','넥스틴'],['053080','케이엔솔'],['126340','비나텍'],['359090','씨엔알리서치'],['323990','박셀바이오'],['318410','비비씨'],['355150','코스텍시스'],['347770','핌스'],['291650','압타머사이언스'],['294090','이오플로우'],['293490','카카오게임즈'],['347740','피엔케이피부임상연구센타'],['332370','아이디피'],['331920','셀레믹스'],['950190','고스트스튜디오'],['337930','젝시믹스'],['060850','영림원소프트랩'],['032300','한국파마'],['357780','솔브레인'],['332570','PS일렉트로닉스'],['101360','에코앤드림'],['347890','엠엑스온'],['298540','더네이쳐홀딩스'],['225220','제놀루션'],['304100','솔트룩스'],['277880','티에스아이'],['262260','에이프로'],['950200','소마젠'],['290520','신도기연'],['330350','위더스제약'],['169330','엠브레인'],['229000','젠큐릭스'],['297890','HB솔루션'],['351320','넥사다이내믹스'],['298060','풍전약품'],['353190','휴럼'],['353810','이지바이오'],['223250','드림씨아이에스'],['198080','캐프'],['237820','플레이디'],['092190','서울바이오시스'],['204270','제이앤티씨'],['274090','켄코아에어로스페이스'],['294140','레몬'],['294630','서남'],['065370','위세아이텍'],['340440','세림B&G'],['311690','CJ 바이오사이언스'],['062970','한국첨단소재'],['327260','RF머트리얼즈'],['339950','아이비김영'],['288330','파라택시스코리아'],['340360','다보링크'],['235980','메드팩토'],['336570','원텍'],['226330','신테카바이오'],['322510','제이엘케이'],['124560','태웅로직스'],['335870','윙스풋'],['302550','리메드'],['336060','웨이버스'],['278650','HLB바이오스텝'],['321550','티움바이오'],['297090','씨에스베어링'],['103840','우양'],['190650','코리아에셋투자증권'],['306040','에스제이그룹'],['216080','제테마'],['214260','라파스'],['084850','아이티엠반도체'],['333430','일승'],['279600','미디어젠'],['322180','LS티라유텍'],['333050','이노테나'],['331520','밸로프'],['317530','에피소드컴퍼니'],['272110','케이엔제이'],['317870','엔바이오니아'],['318010','팜스빌'],['300120','라온피플'],['158430','아톤'],['234690','녹십자웰빙'],['332290','누보'],['331380','포커스에이아이'],['244460','올리패스'],['317120','라닉스'],['320000','한울반도체'],['256150','한독크린텍'],['311390','네오크레마'],['195500','마니커에프앤지'],['328380','솔트웨어'],['286750','나노실리칸첨단소재'],['317830','에스피시스템스'],['228670','레이'],['186230','그린플러스'],['282880','코윈테크'],['317330','덕산테코피아'],['318000','KBG'],['317770','엑스페릭스'],['148150','세경하이테크'],['313760','캐리'],['317850','대모'],['241840','에이스토리'],['300080','플리토'],['234340','헥토파이낸셜'],['289010','아이스크림에듀'],['251970','펌텍코리아'],['312610','에이에프더블류'],['323280','태성'],['293780','압타바이오'],['308100','형지글로벌'],['305090','마이크로디지탈'],['322780','코퍼스코리아'],['321260','프로이천'],['253840','수젠텍'],['307930','컴퍼니케이'],['319660','피에스케이'],['319400','현대무벡스'],['317240','TS트릴리온'],['125210','아모그린텍'],['228760','지노믹트리'],['099750','이지케어텍'],['100790','미래에셋벤처투자'],['247540','에코프로비엠'],['299660','셀리드'],['278280','천보'],['246960','SCL사이언스'],['104620','노랑풍선'],['053580','웹케시'],['238200','비피도'],['263050','유틸렉스'],['290550','디케이티'],['307180','아이엘'],['310200','애니플러스'],['310870','디와이씨'],['299900','위지윅스튜디오'],['309930','조이웍스앤코'],['307750','국전'],['298380','에이비엘바이오'],['100590','머큐리'],['110020','전진바이오팜'],['270870','뉴트리'],['307870','비투엔'],['302430','이노메트리'],['290120','DH오토리드'],['128540','에코캡'],['307280','원바이오젠'],['900340','윙입푸드'],['111710','남화산업'],['179290','엠아이텍'],['117730','티로보틱스'],['290660','다이나믹솔루션'],['246710','티앤알바이오팹'],['263690','디알젬'],['217330','싸이토젠'],['027360','아주IB투자'],['263020','디케이앤디'],['227100','프로브잇'],['194700','노바렉스'],['290670','대보마그네틱'],['285490','노바텍'],['290650','엘앤씨바이오'],['306620','지아이에스'],['108490','로보티즈'],['153710','옵티팜'],['288620','에스프리즘'],['293580','나우IB'],['290720','푸드나무'],['110790','크리스에프앤씨'],['299170','더블유에스아이'],['219750','한국비티비'],['291230','엔피'],['257370','피엔티엠에스'],['197140','디지캡'],['303030','지니틱스'],['290740','액트로'],['173130','오파스넷'],['089970','브이엠'],['086820','바이오솔루션'],['110990','디아이티'],['275630','에스에스알'],['290270','휴네시온'],['080720','한국유니온제약'],['204020','그리티'],['297570','알로이스'],['226950','올릭스'],['175250','아이큐어'],['289080','SV인베스트먼트'],['245620','EDGC'],['284620','카이노스메드'],['037030','파워넷'],['016790','현대사료'],['258830','세종메디칼'],['122310','제노레이'],['950170','JTC'],['253590','네오셈'],['263700','케어랩스'],['277070','린드먼아시아'],['226400','오스테오닉'],['183490','엔지켐생명과학'],['006620','동구바이오제약'],['154030','아시아종묘'],['260660','알리코제약'],['042000','카페24'],['219420','링크제니시스'],['267790','배럴'],['255220','SG'],['264660','씨앤지하이테크'],['269620','시스웍'],['187870','디바이스'],['281740','레이크머티리얼즈'],['260930','씨티케이'],['241770','메카로'],['234300','에스트래픽'],['066360','체리부로'],['007680','대원'],['253450','스튜디오드래곤'],['950160','코오롱티슈진'],['265560','영화테크'],['234100','폴라리스세원'],['263810','상신전자'],['255440','야스'],['277410','인산가'],['263920','휴엠앤씨'],['243840','신흥에스이씨'],['179900','유티아이'],['171090','선익시스템'],['259630','엠플러스'],['174900','앱클론'],['263750','펄어비스'],['256940','킵스파마'],['263600','덕우전자'],['270520','앱튼'],['258610','케일럼'],['140670','알에스오토메이션'],['900310','컬러레이'],['273060','와이즈버즈'],['118990','모트렉스'],['263800','데이타솔루션'],['263860','지니언스'],['263720','디앤씨미디어'],['238490','힘스'],['251630','브이원텍'],['227610','아우딘퓨쳐스'],['272290','이녹스첨단소재'],['003380','하림지주'],['261200','덴티스'],['267320','나인테크'],['250000','보라티알'],['267980','매일유업'],['225190','LK삼양'],['264850','이랜시스'],['161580','필옵틱스'],['256630','포인트엔지니어링'],['166090','하나머티리얼즈'],['258790','소프트캠프'],['251370','와이엠티'],['265520','AP시스템'],['263770','유에스티'],['063760','이엘피'],['264450','유비쿼스'],['178320','서진시스템'],['183300','코미코'],['246720','아스타'],['217480','에스디생명공학'],['002800','신신제약'],['083500','에프엔에스테크'],['087260','모바일어플라이언스'],['241820','피씨엘'],['140070','서플러스글로벌'],['206650','유바이오로직스'],['256840','한국비엔씨'],['241520','DSC인베스트먼트'],['246690','TS인베스트먼트'],['147760','피엠티'],['196300','HLB펩'],['203450','유니온바이오메트릭스'],['215600','신라젠'],['254120','자비스'],['241790','티이엠씨씨엔에스'],['220100','퓨쳐켐'],['144960','뉴파워프라즈마'],['156100','엘앤케이바이오'],['220180','핸디소프트'],['237880','클리오'],['900300','오가닉티코스메틱'],['238120','얼라인드'],['252500','세화피앤씨'],['216050','인크로스'],['239610','에이치엘사이언스'],['241710','코스메카코리아'],['900290','GRT'],['189300','인텔리안테크'],['072990','에이치시티'],['950140','잉글우드랩'],['238090','앤디포스'],['050960','수산아이앤티'],['201490','미투온'],['250930','예선테크'],['241690','유니테크노'],['250060','모비스'],['242040','나무기술'],['234920','자이글'],['900270','헝셩그룹'],['230360','에코마케팅'],['208860','다산디엠씨'],['073560','우리손에프앤지'],['123010','알엔티엑스'],['142760','모아라이프플러스'],['237750','피앤씨테크'],['900260','로스웰'],['237690','에스티팜'],['144510','지씨셀'],['148250','알엔투테크놀로지'],['239340','이스트에이드'],['243070','휴온스'],['240810','원익IPS'],['228850','레이언스'],['228340','동양파일'],['222110','팬젠'],['211270','AP위성'],['230980','비유테크놀러지'],['115180','큐리언트'],['065660','안트로젠'],['236200','슈프리마'],['142210','유니트론텍'],['900250','크리스탈신소재'],['224060','더코디'],['109610','에스와이'],['223310','사토시홀딩스'],['232140','와이씨'],['191410','육일씨엔에쓰'],['145020','휴젤'],['222980','한국맥널티'],['206560','덱스터'],['013310','아진산업'],['047920','HLB제약'],['217730','강스템바이오텍'],['133750','메가엠디'],['225530','HC보광산업'],['140860','파크시스템스'],['230240','에치에프알'],['122640','예스티'],['222040','코스맥스엔비티'],['058110','멕아이씨에스'],['217820','원익피앤이'],['221840','하이즈항공'],['180400','DXVX'],['221980','케이디켐'],['212560','네오오토'],['227950','엔투텍'],['214370','케어젠'],['185490','아이진'],['190510','나무가'],['056090','시지메드텍'],['226340','본느'],['182400','엔케이젠바이오텍코리아'],['092870','엑시콘'],['225430','케이엠제약'],['225590','패션플랫폼'],['225570','넥슨게임즈'],['217190','제너셈'],['219130','타이거일렉'],['175140','휴먼테크놀로지'],['222080','씨아이에스'],['224110','에이텍모빌리티'],['196700','웹스'],['131760','파인텍'],['222800','심텍'],['189980','흥국에프엔비'],['222420','쎄노텍'],['094360','칩스앤미디어'],['127710','아시아경제'],['214430','아이쓰리시스템'],['067730','로지시스'],['220260','켐트로스'],['214450','파마리서치'],['219550','디와이디'],['087010','펩트론'],['218410','RFHIC'],['094170','동운아나텍'],['178780','일월지엠엘'],['214180','헥토이노베이션'],['166480','코아스템켐온'],['177350','베셀'],['217270','넵튠'],['218150','미래생명자원'],['160980','싸이맥스'],['217500','러셀'],['087600','픽셀플러스'],['217620','선샤인푸드'],['187420','HLB제넥스'],['215380','우정바이오'],['215480','토박스코리아'],['215790','이노인스트루먼트'],['215360','우리산업'],['215200','메가스터디교육'],['215090','솔디펜스'],['215100','로보로보'],['214680','디알텍'],['195990','에이비프로바이오'],['215000','골프존'],['214150','클래시스'],['214270','FSN'],['189690','포시에스'],['213420','덕산네오룩스'],['060480','국일신동'],['193250','링크드'],['206640','바디텍메드'],['208640','썸에이지'],['200470','에이팩트'],['200670','휴메딕스'],['189860','서전기전'],['067390','아스트'],['080580','오킨스전자'],['208350','지란지교시큐리티'],['208710','포톤'],['160550','NEW'],['124500','아이티센글로벌'],['142280','녹십자엠에스'],['187220','디티앤씨'],['208370','셀바스헬스케어'],['208140','정다운'],['149980','하이로닉'],['084650','랩지노믹스'],['200710','에이디테크놀로지'],['200780','비씨월드제약'],['207760','미스터블루'],['196170','알테오젠'],['206400','베노티앤알'],['140520','대창스틸'],['173940','에프엔씨엔터'],['205470','휴마시스'],['200230','텔콘RF제약'],['204840','지엘팜텍'],['204620','글로벌텍스프리'],['196490','디에이테크놀로지'],['205500','넥써쓰'],['205100','엑셈'],['191420','테고사이언스'],['192440','슈피겐코리아'],['143540','영우디에스피'],['203650','드림시큐리티'],['041920','메디아나'],['194480','데브시스터즈'],['203690','아크솔루션스'],['192410','오늘이엔엠'],['198440','강동씨앤엘'],['187270','신화콘텍'],['177830','파버나인'],['090410','덕신이피씨'],['004650','창해에탄올'],['192390','윈하이텍'],['059120','아진엑스텍'],['200130','콜마비앤에이치'],['105550','엣지파운드리'],['196450','코아시아씨엠'],['071850','캐스텍코리아'],['187790','나노'],['192250','케이사인'],['138080','오이솔루션'],['053300','한국정보인증'],['154040','다산솔루에타'],['090850','현대이지웰'],['184230','SGA솔루션즈'],['049080','기가레인'],['085810','알티캐스트'],['170030','현대공업'],['067570','엔브이에이치코리아'],['134580','탑코미디어'],['182360','큐브엔터'],['171120','라이온켐텍'],['171010','램테크놀러지'],['138360','앤로보틱스'],['076610','해성옵틱스'],['168330','내츄럴엔도텍'],['131970','두산테스나'],['150900','파수에이아이'],['170920','엘티씨'],['119850','지엔씨에너지'],['092040','아미코젠'],['130500','GH신소재'],['170790','파이오링크'],['151860','KG에코솔루션'],['089600','KT나스미디어'],['950130','엑세스바이오'],['141080','리가켐바이오'],['097800','윈팩'],['104540','코렌텍'],['159580','제로투세븐'],['114810','한솔아이원스'],['153490','우리이앤엘하루틴'],['099190','아이센스'],['159910','에코글로우'],['046970','우리로'],['113810','디젠스'],['155650','와이엠씨'],['149950','아바텍'],['121850','코이즈'],['153460','네이블'],['106520','노블엠앤비'],['137400','피엔티'],['141000','비아트론'],['072950','빛샘전자'],['143240','사람인'],['147830','제룡산업'],['091590','남화토건'],['140410','메지온'],['104830','원익머트리얼즈'],['127120','제이에스링크'],['130580','나이스디앤비'],['131090','시큐브'],['100660','서암기계공업'],['115480','씨유메디칼'],['139670','키네마스터'],['121800','비덴트'],['138070','신진에스엠'],['123570','이엠넷'],['122870','와이지엔터테인먼트'],['089030','테크윙'],['101240','씨큐브'],['007820','엠엑스로보틱스'],['115530','씨엔플러스'],['090360','로보스타'],['131220','대한과학'],['143160','아이디스'],['137950','제이씨케미칼'],['040910','아이씨디'],['123330','제닉'],['139050','BF랩스'],['089980','상아프론테크'],['138610','나이벡'],['109080','옵티시스'],['108380','대양전기공업'],['019770','서연탑메탈'],['137940','넥스트아이'],['131100','티엔엔터테인먼트'],['122450','KX'],['121440','골프존홀딩스'],['136540','윈스테크넷'],['136480','하림'],['134060','이퓨쳐'],['104480','티케이케미칼'],['008470','부스타'],['121600','나노신소재'],['093320','케이아이엔엑스'],['130740','티피씨글로벌'],['061970','LB세미콘'],['131180','딜리'],['126880','제이엔케이글로벌'],['033560','블루콤'],['048530','인트론바이오'],['131370','알서포트'],['064290','인텍플러스'],['131290','티에스이'],['131400','이브이첨단소재'],['120240','대정화금'],['128660','피제이메탈'],['131030','옵투스제약'],['096690','에이루트'],['033830','티비씨'],['033170','시그네틱스'],['041460','한국전자인증'],['126600','BGF에코머티리얼즈'],['105740','디케이락'],['123420','위메이드플레이'],['123860','아나패스'],['058400','KNN'],['069140','누리플랜'],['119830','아이텍'],['101930','인화정공'],['068940','셀피글로벌'],['123840','뉴온'],['117670','알파칩스'],['119500','포메탈'],['068240','다원시스'],['096530','씨젠'],['122990','와이솔'],['126700','하이비젼시스템'],['126640','화신정공'],['123410','코리아에프티'],['123040','엠에스오토텍'],['067920','이글루'],['119610','인터로조'],['106190','하이텍팜'],['121890','에스디시스템'],['123750','알톤'],['089850','유비벨록스'],['046120','오르비텍'],['070300','엑스큐어'],['079970','투비소프트'],['071200','인피니트헬스케어'],['122690','서진오토모티브'],['100030','인지소프트'],['900110','이스트아시아홀딩스'],['900100','애머릿지'],['115500','케이씨에스'],['900120','씨엑스아이'],['115450','HLB테라퓨틱스'],['122350','삼기'],['115610','이미지스'],['115310','인포바인'],['106080','케이이엠텍'],['101330','모베이스'],['115570','스타플렉스'],['115440','우리넷'],['050860','아세아텍'],['114630','폴라리스우노'],['080530','코디'],['900070','글로벌에스엠'],['099520','DGI'],['114450','그린생명과학'],['104460','디와이피엔에프'],['112040','위메이드'],['108860','셀바스AI'],['088290','이원컴포텍'],['114190','강원에너지'],['115160','휴맥스'],['109960','앱토크롬'],['099410','동방선기'],['101000','KS인더스트리'],['109820','진매트릭스'],['082920','비츠로셀'],['042520','한스바이오메드'],['104200','NHN벅스'],['052860','아이앤씨'],['105330','케이엔더블유'],['109740','디에스케이'],['095700','제넥신'],['108230','톱텍'],['100130','동국S&C'],['103230','에스앤더블류'],['063080','컴투스홀딩스'],['109860','동일금속'],['102120','어보브반도체'],['101730','위메이드맥스'],['102710','이엔에프테크놀로지'],['099440','스맥'],['099220','SDN'],['101680','한국정밀기계'],['010240','흥국'],['101170','우림피티에스'],['081150','티플랙스'],['098660','에스티오'],['071670','에이테크솔루션'],['101490','에스앤에스텍'],['100120','뷰웍스'],['102940','코오롱생명과학'],['101400','엔시트론'],['106240','파인테크닉스'],['086890','이수앱지스'],['104040','디에스엠'],['078070','유비쿼스홀딩스'],['086900','메디톡스'],['058630','엠게임'],['059100','아이컴포넌트'],['067630','HLB생명과학'],['092130','이크레더블'],['100700','세운메디칼'],['098120','마이크로컨텍솔'],['083470','이엠앤아이'],['101390','아이엠'],['076080','웰크론한텍'],['101670','하이드로리튬'],['094840','슈프리마에이치큐'],['063170','서울옥션'],['047560','이스트소프트'],['096240','크레버스'],['101160','월덱스'],['099320','쎄트렉아이'],['064480','브리지텍'],['098460','고영'],['067000','조이시티'],['018620','우진비앤지'],['095610','테스'],['053280','예스24'],['096870','엘디티'],['059210','메타바이오메드'],['097870','효성오앤비'],['091440','한울소재과학'],['097780','에코볼트'],['096630','에스코넥'],['068330','일신바이오'],['093920','서원인텍'],['067010','이씨에스'],['096350','대창솔루션'],['069920','엑시온그룹'],['096610','알에프세미'],['092070','디엔에프'],['094820','일진파워'],['086670','비엠티'],['095190','신화프리텍'],['092300','현우산업'],['093640','케이알엠'],['095910','에스에너지'],['081580','성우전자'],['073110','엘엠에스'],['094970','제이엠티'],['080520','오디텍'],['095340','ISC'],['085910','네오티스'],['095500','미래나노텍'],['027580','상보'],['086040','바이오톡스텍'],['057540','옴니시스템'],['094940','푸른기술'],['095270','웨이브일렉트로'],['093190','빅솔론'],['091340','S&K폴리텍'],['072770','멤레이비티'],['094480','갤럭시아머니트리'],['086520','에코프로'],['065150','대산F&B'],['078340','컴투스'],['095660','네오위즈'],['092600','앤씨앤'],['069410','엔텔스'],['093380','풍강'],['086450','동국제약'],['064820','케이프'],['091580','상신이디피'],['092460','한라IMS'],['073540','에프알텍'],['091120','이엠텍'],['094850','참좋은여행'],['094860','네오리진'],['078020','LS증권'],['093520','매커스'],['091970','나노캠텍'],['092730','네오팜'],['039200','오스코텍'],['089010','켐트로닉스'],['090470','제이스로보틱스'],['088130','동아엘텍'],['084110','휴온스글로벌'],['089150','케이씨티'],['091700','파트론'],['086390','유니테스트'],['090710','휴림로봇'],['060540','에스에이티'],['066310','큐에스아이'],['067280','멀티캠퍼스'],['089890','코세스'],['080470','성창오토텍'],['089140','넥스턴앤롤코리아'],['089790','제이티'],['090150','아이윈'],['088390','이녹스'],['089230','THE E&M'],['043150','바텍'],['086960','MDS테크'],['038060','루멘스'],['083660','CSA 코스믹'],['063570','NICE인프라'],['086980','쇼박스'],['068050','팬엔터테인먼트'],['039290','인포뱅크'],['078860','스테이지원엔터'],['088910','동우팜투테이블'],['054950','제이브이엠'],['084730','팅크웨어'],['086060','진바이오텍'],['022220','티케이지애강'],['088800','에이스테크'],['068760','셀트리온제약'],['083450','GST'],['019990','에너토크'],['079370','제우스'],['085670','뉴프렉스'],['084370','유진테크'],['083790','CG인바이츠'],['064550','바이오니아'],['084990','헬릭스미스'],['083640','인콘'],['085660','차바이오텍'],['078140','대봉엘에스'],['067900','와이엔텍'],['083550','케이엠'],['084180','수성웹툰'],['080420','모다이노칩'],['083650','비에이치아이'],['079190','케스피온'],['082800','비보존 제약'],['043910','자연과환경'],['079000','와토스코리아'],['041020','폴라리스오피스'],['078590','휴림에이텍'],['038070','서린바이오'],['079940','가비아'],['077360','덕산하이메탈'],['083930','아바코'],['067310','하나마이크론'],['083310','엘오티베큠'],['082660','코스나인'],['080010','이상네트웍스'],['078160','메디포스트'],['082850','우리바이오'],['080160','모두투어'],['078890','가온그룹'],['050890','쏠리드'],['082210','옵트론텍'],['082270','젬백스'],['075130','플랜티넷'],['073490','LIG아큐버'],['079950','인베니아'],['079960','동양이엔피'],['080220','제주반도체'],['079170','한창산업'],['079810','APS이노베이션'],['052220','iMBC'],['079650','서산'],['052900','KX하이텍'],['066910','손오공'],['049950','미래컴퍼니'],['052460','아이크래프트'],['072870','메가스터디'],['073010','케이에스피'],['046440','KG파이낸셜'],['078600','대주전자재료'],['054450','텔레칩스'],['078150','HB테크놀러지'],['067990','도이치모터스'],['051360','토비스'],['078130','국일제지'],['068790','DMS'],['048870','시너지이노베이션'],['065350','신성델타테크'],['039340','한국경제TV'],['064260','다날'],['011080','형지I&C'],['050090','비케이홀딩스'],['057030','YBM넷'],['065770','CS'],['074430','아미노로직스'],['066700','테라젠이텍스'],['066900','디에이피'],['078350','한양디지텍'],['075970','동국알앤에스'],['069540','빛과전자'],['073190','듀오백'],['054090','삼진엘앤디'],['041910','폴라리스AI파마'],['067770','세진티에스'],['070590','인티큐브'],['073570','리튬포어스'],['073640','테라사이언스'],['065680','우주일렉트로'],['067160','SOOP'],['060570','드림어스컴퍼니'],['066410','버킷스튜디오'],['074600','원익QnC'],['071280','로체시스템즈'],['069510','에스텍'],['067170','오텍'],['054780','키이스트'],['041440','현대에버다임'],['072020','중앙백신'],['065510','휴비츠'],['072470','우리산업홀딩스'],['068930','디지털대성'],['069330','유아이디'],['064760','티씨케이'],['052710','아모텍'],['065950','웰크론'],['047310','파워로직스'],['041520','이엘씨'],['064240','홈캐스트'],['066790','씨씨에스'],['069080','웹젠'],['067080','대화제약'],['066590','스모트로닉'],['067290','JW신약'],['066130','하츠'],['065450','빅텍'],['065130','탑엔지니어링'],['065440','이루온'],['049630','재영솔루텍'],['021650','한국큐빅'],['051370','인터플렉스'],['065570','삼영이엔씨'],['065650','하이퍼코퍼레이션'],['066980','한성크린텍'],['016100','리더스코스메틱'],['042040','케이피엠테크'],['066670','디티씨'],['066430','아이로보틱스'],['047820','초록뱀미디어'],['064090','인크레더블버즈'],['049960','쎌바이오텍'],['053290','NE능률'],['064520','테크엘'],['035600','KG이니시스'],['065170','비엘팜텍'],['041590','플래스크'],['042600','새로닉스'],['065500','오리엔트정공'],['060900','에이전트AI'],['066620','국보디자인'],['052770','아이톡시'],['065420','에스아이리소스'],['064800','포니링크'],['039980','폴라리스AI'],['048410','현대바이오'],['058610','에스피지'],['045340','토탈소프트'],['065710','서호전기'],['065690','파커스'],['060560','HC홈센타'],['043710','서울리거'],['036010','아비코전자'],['060280','큐렉소'],['060230','제이케이시냅스'],['046940','우원개발'],['057680','티사이언티픽'],['060150','인선이엔티'],['065530','와이어블'],['063440','SM Life Design'],['051160','지어소프트'],['065060','지엔코'],['049180','셀루메드'],['060720','KH바텍'],['061040','알에프텍'],['050760','에스폴리텍'],['054210','이랜텍'],['050120','ES큐브'],['054410','케이피티유'],['060310','3S'],['061250','화일약품'],['053980','오상자이엘'],['054050','농우바이오'],['039420','케이엘넷'],['039440','에스티아이'],['049550','잉크테크'],['054670','대한뉴팜'],['060590','씨티씨바이오'],['049070','인탑스'],['060370','LS마린솔루션'],['051380','피씨디렉트'],['053270','구영테크'],['034950','한국기업평가'],['060260','뉴보텍'],['060380','동양에스텍'],['046310','백금T&A'],['049720','고려신용정보'],['046890','서울반도체'],['013990','아가방컴퍼니'],['058450','한주에이알티'],['059090','미코'],['054930','유신'],['035200','프럼파스트'],['054040','한국컴퓨터'],['048470','대동스틸'],['042500','링네트'],['040350','크레오에스지'],['054300','팬스타엔터프라이즈'],['047080','한빛소프트'],['060250','NHN KCP'],['056730','CNT85'],['053260','금강철강'],['060240','스타코링크'],['041930','SY동아'],['054220','비츠로시스'],['014940','오리엔탈정공'],['043590','웰킵스하이텍'],['058470','리노공업'],['045300','성우테크론'],['056190','에스에프에이'],['056700','신화인터텍'],['054940','엑사이엔씨'],['043370','피에이치에이'],['054620','APS'],['056360','코위버'],['043260','성호전자'],['051390','YW'],['054540','삼영엠텍'],['053350','이니텍'],['056080','유진로봇'],['044490','태웅'],['053950','경남제약'],['053700','삼보모터스'],['054920','한컴위드'],['041960','코미팜'],['053160','프리엠스'],['052400','코나아이'],['054180','메디콕스'],['043090','더테크놀로지'],['049470','비트플래닛'],['053050','지에스이'],['054800','아이디스홀딩스'],['047770','코데즈컴바인'],['053800','안랩'],['040300','YTN'],['058820','CMG제약'],['035900','JYP Ent.'],['021320','KCC건설'],['053060','세동'],['053610','프로텍'],['052790','액토즈소프트'],['053450','세코닉스'],['053030','바이넥스'],['052420','오성첨단소재'],['053620','태양'],['052300','오션인더블유'],['049520','유아이엘'],['048910','대원미디어'],['051980','중앙첨단소재'],['051500','CJ프레시웨이'],['049120','파인디앤씨'],['043360','디지아이'],['052330','코텍'],['052600','한네트'],['052020','에스티큐브'],['043220','티에스넥스젠'],['051780','큐로홀딩스'],['033790','피노'],['051490','나라엠앤디'],['038870','에코심플렉스'],['045660','에이텍'],['045390','대아티아이'],['050110','캠시스'],['052260','현대바이오랜드'],['036540','SFA반도체'],['038500','삼표시멘트'],['024850','HLB이노베이션'],['048550','SM C&C'],['049830','승일'],['048770','TPC로보틱스'],['049430','코메론'],['044480','빌리언스'],['046390','삼화네트웍스'],['014620','성광벤드'],['048430','유라테크'],['017480','삼현철강'],['049480','오픈베이스'],['042510','라온시큐어'],['036670','삼양케이씨아이'],['039830','오로라'],['036190','금화피에스시'],['046070','코다코'],['041830','인바디'],['014570','고려제약'],['045520','크린앤사이언스'],['044180','KD'],['044960','이글벳'],['032080','아즈텍WB'],['010470','오리콤'],['044340','위닉스'],['042940','상지건설'],['048830','엔피케이'],['000250','삼천당제약'],['044780','에이치케이'],['045510','정원엔시스'],['045100','한양이엔지'],['040160','누리플렉스'],['043340','에쎈테크'],['043650','국순당'],['037950','엘컴텍'],['039030','이오테크닉스'],['038540','상상인'],['018680','서울제약'],['046210','HLB파나진'],['039860','나노엔텍'],['045060','오공'],['043100','알파AI'],['042370','비츠로테크'],['045970','코아시아'],['040420','정상제이엘에스'],['007370','진양제약'],['043610','KT지니뮤직'],['036890','진성티이씨'],['039010','현대에이치티'],['009300','삼아제약'],['043200','파루'],['042110','에스씨디'],['039740','한국정보공학'],['039840','디오'],['042420','네오위즈홀딩스'],['039560','다산네트웍스'],['038460','바이오스마트'],['032820','우리기술'],['001540','안국약품'],['039310','세중'],['041190','우리기술투자'],['038530','케이바이오랩스'],['036640','HRS'],['031330','에스에이엠티'],['038620','위즈코프'],['039020','이건홀딩스'],['038950','파인디지털'],['036800','나이스정보통신'],['040610','SG&G'],['038880','아이에이'],['038680','에스넷'],['041510','에스엠'],['010280','아이티센엔텍'],['037760','쎄니트'],['036480','대성미생물'],['038110','에코플라스틱'],['032500','케이엠더블유'],['039610','화성밸브'],['039240','경남스틸'],['038290','마크로젠'],['037440','희림'],['038390','레드캡투어'],['036830','솔브레인홀딩스'],['036810','에프에스티'],['036690','코맥스'],['037370','EG'],['036620','감성코퍼레이션'],['037350','성도이엔지'],['038010','제일테크노스'],['001810','무림SP'],['036630','세종텔레콤'],['036710','심텍홀딩스'],['037070','파세코'],['036560','KZ정밀'],['016250','SGC E&C'],['035890','서희건설'],['036930','주성엔지니어링'],['036030','케이티알파'],['032190','다우데이타'],['005290','동진쎄미켐'],['003100','선광'],['036170','에이치엠넥스'],['026040','제이에스티나'],['037230','한국팩키지'],['037460','삼지전자'],['037400','우리엔터프라이즈'],['033640','네패스'],['037330','인지디스플레'],['036090','위지트'],['036200','유니셈'],['024800','유성티엔에스'],['027050','코리아나'],['035290','골드앤에스'],['036120','서울평가정보'],['027040','서울전자통신'],['027830','대성창투'],['036000','예림당'],['035760','CJ ENM'],['035810','이지홀딩스'],['035460','기산텔레콤'],['035620','바른손이앤에이'],['035610','솔본'],['020710','시공테크'],['012790','신일제약'],['034940','조아제약'],['033230','인성정보'],['035080','그래디언트'],['005160','동국산업'],['005990','매일홀딩스'],['034810','해성산업'],['025770','한국정보통신'],['033540','파라텍'],['033500','동성화인텍'],['030350','드래곤플라이'],['033160','엠케이전자'],['033310','엠투엔'],['033320','제이씨현시스템'],['009520','포스코엠텍'],['013810','스페코'],['033340','좋은사람들'],['033290','로젠'],['033200','모아텍'],['015710','코콤'],['033100','제룡전기'],['033050','제이엠아이'],['033130','디지틀조선'],['032980','바이온'],['019210','와이지-원'],['026150','특수건설'],['031310','아이즈비전'],['032960','동일기연'],['032680','소프트센'],['032940','원익'],['008290','원풍물산'],['032750','삼진'],['032860','더라미'],['032850','비트컴퓨터'],['032790','엠젠솔루션'],['032800','판타지오'],['032620','GC메디아이'],['032580','피델릭스'],['032540','TJ미디어'],['028080','휴맥스홀딩스'],['032280','삼일'],['012340','뉴인텍'],['031510','오스템'],['031860','디에이치엑스컴퍼니'],['031980','피에스케이홀딩스'],['011560','세보엠이씨'],['024740','한일단조'],['030960','양지사'],['030530','원익홀딩스'],['030520','한글과컴퓨터'],['021880','메이슨캐피탈'],['029480','광무'],['021040','대호특수강'],['028300','HLB'],['027710','팜스토리'],['023600','삼보판지'],['018310','삼목에스폼'],['003800','에이스침대'],['014190','원익큐브'],['012700','리드코프'],['018000','유니슨'],['025980','아난티'],['026910','광진실업'],['017250','인터엠'],['015750','성우하이텍'],['020180','대신정보통신'],['006730','서부T&D'],['025950','동신건설'],['025900','동화기업'],['025870','신라에스지'],['025880','케이씨피드'],['002680','한탑'],['025550','한국선재'],['025440','DH오토웨어'],['025320','시노펙스'],['024940','PN풍년'],['024950','삼천리자전거'],['014100','메디앙스'],['024840','KBI메탈'],['024910','경창산업'],['004780','대륙제관'],['013120','동원개발'],['024830','세원물산'],['024880','케이피에프'],['024120','KB오토시스'],['017000','신원종합개발'],['024060','흥구석유'],['023910','대한약품'],['001840','이화공영'],['023900','풍국주정'],['017650','대림제지'],['010170','대한광통신'],['023790','동일스틸럭스'],['023770','플레이위드'],['023760','한국캐피탈'],['005860','한일사료'],['012860','모베이스전자'],['006050','국영지앤엠'],['023410','유진기업'],['023440','제이스코홀딩스'],['006910','보성파워텍'],['018290','브이티'],['023160','태광'],['007530','와이엠'],['001000','신라섬유'],['012620','원일특강'],['011370','서한'],['018700','바른손'],['014470','부방'],['007720','소노스퀘어'],['013720','THE CUBE&'],['011320','유니크'],['018120','진로발효'],['009620','삼보산업'],['005670','푸드웰'],['007330','푸른저축은행'],['006140','피제이전자'],['019010','베뉴지'],['009780','엠에스씨'],['020400','대동금속'],['005710','대원산업'],['016600','큐캐피탈'],['004590','한국가구'],['016670','디모아'],['000440','중앙에너비스'],['014970','삼륭물산'],['011040','경동제약'],['008370','원풍'],['007390','네이처셀'],['002290','삼일기업공사'],['019540','일지테크'],['007770','한일화학'],['017890','한국알콜'],['003310','대주산업'],['019660','글로본'],['017510','세명전기'],['021080','에이티넘인베스트'],['008830','대동기어'],['002230','피에스텍'],['009730','이렘'],['016920','카스'],['013030','하이록코리아'],['019550','SBI인베스트먼트'],['019570','플루토스'],['006920','모헨즈']];
+const KR_STOCKS = KR_STOCKS_RAW.map(([code,name]) => ({ symbol: code+'.KS', shortname: name, exchange: 'KSC', quoteType: 'EQUITY' }));
+
+let searchDebounce = null;
+const hasKorean = (s) => /[가-힣]/.test(s);
+
+function onStockSearch(query) {
+  clearTimeout(searchDebounce);
+  const box = document.getElementById('searchResults');
+  if (query.trim().length < 1) { box.style.display = 'none'; return; }
+  searchDebounce = setTimeout(() => searchStocks(query.trim()), 300);
+}
+
+async function searchStocks(query) {
+  const box = document.getElementById('searchResults');
+  box.style.display = 'block';
+
+  let results = null;
+
+  if (hasKorean(query) || /^\d{4,6}$/.test(query)) {
+    // 한국어 또는 종목코드 → 로컬 DB에서 즉시 검색
+    const q = query.toLowerCase();
+    results = KR_STOCKS.filter(s =>
+      s.shortname.toLowerCase().includes(q) ||
+      s.symbol.includes(q)
+    ).slice(0, 10);
+  } else {
+    // 영어/숫자 → Yahoo API (병렬 프록시 레이스)
+    box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 중...</div>';
+    const url1 = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+    const url2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+    const ok = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
+    try {
+      results = await Promise.any([
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url1), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j)),
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url2), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j)),
+        fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(w => ok(JSON.parse(w.contents))),
+        fetchWithTimeout('https://corsproxy.io/' + url1, 7000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j))
+      ]);
+    } catch(e) { results = null; }
+  }
+
+  if (!results || !results.length) {
+    box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 결과 없음</div>';
+    return;
+  }
+
+  box.innerHTML = results.map((q, i) => {
+    const exchange = q.exchange || '';
+    const type = q.quoteType === 'EQUITY' ? '주식' : q.quoteType === 'ETF' ? 'ETF' : q.quoteType || '';
+    const name = q.shortname || q.longname || q.symbol;
+    return `<div class="search-item" onclick="selectStock(${i})" data-idx="${i}"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-weight:600;font-size:13px">${name}</div>
+        <div style="font-size:11px;color:var(--text-dim)">${q.symbol} · ${exchange}</div>
+      </div>
+      <div style="font-size:11px;color:var(--accent2)">${type}</div>
+    </div>`;
+  }).join('');
+
+  window._searchResults = results;
+}
+
+function selectStock(idx) {
+  const q = window._searchResults[idx];
+  if (!q) return;
+
+  const symbol = q.symbol || '';
+  const name = q.shortname || q.longname || symbol;
+  const exchange = (q.exchange || '').toUpperCase();
+
+  // 시장 판별: 한국 거래소면 KR, 아니면 US
+  const isKR = ['KSC','KOE','KOS','KSE','KQ'].some(e => exchange.includes(e)) || symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+
+  document.getElementById('hName').value = name;
+  document.getElementById('hTicker').value = symbol;
+  document.getElementById('hMarket').value = isKR ? 'KR' : 'US';
+  updateMarketLabel();
+
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('hSearch').value = name;
+  document.getElementById('hQty').focus();
+}
+
+// === 매매 기록 폼 종목 검색 ===
+let tradeSearchDebounce = null;
+
+function onTradeSearch(query) {
+  clearTimeout(tradeSearchDebounce);
+  const box = document.getElementById('tradeSearchResults');
+  if (query.trim().length < 1) { box.style.display = 'none'; return; }
+  tradeSearchDebounce = setTimeout(() => searchTradeStocks(query.trim()), 300);
+}
+
+async function searchTradeStocks(query) {
+  const box = document.getElementById('tradeSearchResults');
+  box.style.display = 'block';
+
+  let results = null;
+
+  if (hasKorean(query) || /^\d{4,6}$/.test(query)) {
+    const q = query.toLowerCase();
+    results = KR_STOCKS.filter(s =>
+      s.shortname.toLowerCase().includes(q) ||
+      s.symbol.includes(q)
+    ).slice(0, 10);
+  } else {
+    box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 중...</div>';
+    const url1 = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+    const url2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+    const ok = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
+    try {
+      results = await Promise.any([
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url1), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j)),
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url2), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j)),
+        fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(w => ok(JSON.parse(w.contents))),
+        fetchWithTimeout('https://corsproxy.io/' + url1, 7000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(j => ok(j))
+      ]);
+    } catch(e) { results = null; }
+  }
+
+  if (!results || !results.length) {
+    box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 결과 없음</div>';
+    return;
+  }
+
+  box.innerHTML = results.map((q, i) => {
+    const exchange = q.exchange || '';
+    const type = q.quoteType === 'EQUITY' ? '주식' : q.quoteType === 'ETF' ? 'ETF' : q.quoteType || '';
+    const name = q.shortname || q.longname || q.symbol;
+    return `<div class="search-item" onclick="selectTradeStock(${i})" data-idx="${i}"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <div>
+        <div style="font-weight:600;font-size:13px">${name}</div>
+        <div style="font-size:11px;color:var(--text-dim)">${q.symbol} · ${exchange}</div>
+      </div>
+      <div style="font-size:11px;color:var(--accent2)">${type}</div>
+    </div>`;
+  }).join('');
+
+  window._tradeSearchResults = results;
+}
+
+function selectTradeStock(idx) {
+  const q = window._tradeSearchResults[idx];
+  if (!q) return;
+
+  const symbol = q.symbol || '';
+  const name = q.shortname || q.longname || symbol;
+  const exchange = (q.exchange || '').toUpperCase();
+
+  const isKR = ['KSC','KOE','KOS','KSE','KQ'].some(e => exchange.includes(e)) || symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+
+  document.getElementById('tName').value = name;
+  document.getElementById('tTicker').value = symbol;
+  document.getElementById('tMarket').value = isKR ? 'KR' : 'US';
+
+  document.getElementById('tradeSearchResults').style.display = 'none';
+  document.getElementById('tSearch').value = name;
+  document.getElementById('tQty').focus();
+}
+
+// 검색창 외부 클릭 시 닫기
+document.addEventListener('click', (e) => {
+  const box = document.getElementById('searchResults');
+  const input = document.getElementById('hSearch');
+  if (box && !box.contains(e.target) && e.target !== input) box.style.display = 'none';
+
+  const tbox = document.getElementById('tradeSearchResults');
+  const tinput = document.getElementById('tSearch');
+  if (tbox && !tbox.contains(e.target) && e.target !== tinput) tbox.style.display = 'none';
+});
+
+// 배치 시세 조회: 모든 종목을 한 번의 API 호출로 가져옴
+async function fetchYahooPricesBatch(tickers) {
+  const symbols = tickers.join(',');
+  const sparkUrl1 = 'https://query1.finance.yahoo.com/v8/finance/spark?symbols=' + encodeURIComponent(symbols) + '&range=1d&interval=1d';
+  const sparkUrl2 = 'https://query2.finance.yahoo.com/v8/finance/spark?symbols=' + encodeURIComponent(symbols) + '&range=1d&interval=1d';
+
+  function extractFromSpark(json) {
+    const map = {};
+    const results = json?.spark?.result || [];
+    for (const r of results) {
+      const sym = r.symbol;
+      const price = r.response?.[0]?.meta?.regularMarketPrice;
+      if (sym && price && price > 0) map[sym] = price;
+    }
+    return map;
+  }
+
+  function validate(m) { if (!Object.keys(m).length) throw new Error('empty'); return m; }
+
+  // 병렬 레이스: 먼저 성공하는 프록시 사용
+  try {
+    return await Promise.any([
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl1), 18000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => validate(extractFromSpark(j))),
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl2), 18000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => validate(extractFromSpark(j))),
+      fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(sparkUrl1), 18000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(w => validate(extractFromSpark(JSON.parse(w.contents)))),
+      fetchWithTimeout('https://corsproxy.io/' + sparkUrl1, 15000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => validate(extractFromSpark(j)))
+    ]);
+  } catch(e) { return {}; }
+}
+
+// 개별 종목 시세 조회 - .KS/.KQ 동시 병렬 레이스
+async function fetchYahooPrice(ticker) {
+  const tickersToTry = [ticker];
+  if (ticker.endsWith('.KS')) tickersToTry.push(ticker.replace('.KS', '.KQ'));
+
+  function extractPrice(json) {
+    return json?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+  }
+
+  function makePromises(t) {
+    const u1 = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(t) + '?range=1d&interval=1d';
+    const u2 = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(t) + '?range=1d&interval=1d';
+    const ok = p => { if (!p || p <= 0) throw new Error(); return {price: p, t}; };
+    return [
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u1), 15000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => ok(extractPrice(j))),
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u2), 15000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => ok(extractPrice(j))),
+      fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(u1), 15000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(w => ok(extractPrice(JSON.parse(w.contents)))),
+      fetchWithTimeout('https://corsproxy.io/' + u1, 12000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(j => ok(extractPrice(j)))
+    ];
+  }
+
+  try {
+    const result = await Promise.any(tickersToTry.flatMap(makePromises));
+    return result.price;
+  } catch(e) { return null; }
+}
+
+// ============ GITHUB SYNC ============
+let githubSha = null;
+let githubDebounceTimer = null;
+
+// GitHub에서 자동으로 데이터 불러오기 (앱 시작 시)
+async function autoSyncFromGitHub() {
+  const repo = settings.githubRepo || 'surfer-investor/kr-capital';
+  const path = settings.githubPath || 'data/portfolio.json';
+
+  try {
+    // 토큰 있으면 API, 없으면 raw URL (공개 repo 읽기)
+    let res;
+    if (settings.githubToken) {
+      const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+      res = await fetch(apiUrl, {
+        headers: { 'Authorization': `Bearer ${settings.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (res.ok) {
+        const fileData = await res.json();
+        githubSha = fileData.sha;
+        const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
+        const imported = JSON.parse(decoded);
+        if (imported.months) {
+          data = imported;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          return true;
+        }
+      }
+    } else {
+      // 토큰 없어도 공개 repo에서 읽기 시도
+      const rawUrl = `https://raw.githubusercontent.com/${repo}/master/${path}`;
+      res = await fetch(rawUrl);
+      if (res.ok) {
+        const imported = await res.json();
+        if (imported.months) {
+          data = imported;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          return true;
+        }
+      }
+    }
+  } catch(e) {
+    console.log('Auto-sync skipped:', e.message);
+  }
+  return false;
+}
+
+function debouncedSaveToGitHub() {
+  clearTimeout(githubDebounceTimer);
+  githubDebounceTimer = setTimeout(() => saveToGitHub(), 3000);
+}
+
+function updateSyncStatus(state, text) {
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  dot.className = 'sync-dot ' + state;
+  label.textContent = text;
+}
+
+async function saveToGitHub() {
+  if (!settings.githubToken || !settings.githubRepo) return;
+  updateSyncStatus('syncing', '동기화 중...');
+
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+  const apiUrl = `https://api.github.com/repos/${settings.githubRepo}/contents/${settings.githubPath}`;
+
+  const authHeader = { 'Authorization': `Bearer ${settings.githubToken}`, 'Accept': 'application/vnd.github.v3+json' };
+
+  try {
+    // Get current SHA if we don't have it
+    if (!githubSha) {
+      try {
+        const getRes = await fetch(apiUrl, { headers: authHeader });
+        if (getRes.ok) {
+          const existing = await getRes.json();
+          githubSha = existing.sha;
+        }
+      } catch(e) { /* file may not exist yet */ }
+    }
+
+    const body = {
+      message: `Update portfolio data (${new Date().toISOString().slice(0,16).replace('T',' ')})`,
+      content: content
+    };
+    if (githubSha) body.sha = githubSha;
+
+    const res = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { ...authHeader, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      githubSha = result.content.sha;
+      updateSyncStatus('connected', '동기화 완료');
+    } else {
+      const err = await res.json();
+      console.error('GitHub save failed:', res.status, err);
+      if (res.status === 409) {
+        githubSha = null;
+        await saveToGitHub();
+        return;
+      }
+      updateSyncStatus('error', `실패(${res.status}): ${err.message || '알 수 없는 오류'}`);
+    }
+  } catch(e) {
+    console.error('GitHub save error:', e);
+    updateSyncStatus('error', '연결 오류: ' + e.message);
+  }
+}
+
+async function loadFromGitHub() {
+  if (!settings.githubToken || !settings.githubRepo) return alert('GitHub 설정을 먼저 완료해주세요.');
+
+  const statusEl = document.getElementById('ghModalStatus');
+  const btn = document.getElementById('ghLoadBtn');
+  btn.disabled = true;
+  statusEl.textContent = '불러오는 중...';
+  statusEl.style.color = 'var(--text-dim)';
+
+  const apiUrl = `https://api.github.com/repos/${settings.githubRepo}/contents/${settings.githubPath}`;
+
+  try {
+    const res = await fetch(apiUrl, {
+      headers: { 'Authorization': `Bearer ${settings.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      statusEl.textContent = res.status === 404 ? '파일이 없습니다' : `실패(${res.status}): ${errBody.message || ''}`;
+      statusEl.style.color = 'var(--red)';
+      btn.disabled = false;
+      return;
+    }
+
+    const fileData = await res.json();
+    githubSha = fileData.sha;
+    const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
+    const imported = JSON.parse(decoded);
+
+    if (!imported.months) throw new Error('Invalid format');
+    if (!confirm('GitHub 데이터로 현재 데이터를 덮어씌웁니다. 계속할까요?')) {
+      btn.disabled = false;
+      statusEl.textContent = '';
+      return;
+    }
+
+    data = imported;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    populateMonthSelect();
+    const months = Object.keys(data.months).sort().reverse();
+    if (months.length) { currentMonth = months[0]; document.getElementById('monthSelect').value = currentMonth; }
+    render();
+
+    statusEl.textContent = '불러오기 완료!';
+    statusEl.style.color = 'var(--green)';
+    updateSyncStatus('connected', '동기화 완료');
+  } catch(e) {
+    console.error('GitHub load error:', e);
+    statusEl.textContent = '오류: ' + e.message;
+    statusEl.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+}
+
+async function pushToGitHub() {
+  if (!settings.githubToken) return alert('GitHub 설정을 먼저 완료해주세요.');
+  const statusEl = document.getElementById('ghModalStatus');
+  const btn = document.getElementById('ghPushBtn');
+  btn.disabled = true;
+  statusEl.textContent = '저장 중...';
+  statusEl.style.color = 'var(--text-dim)';
+
+  await saveToGitHub();
+
+  const dot = document.getElementById('syncDot');
+  if (dot.classList.contains('connected')) {
+    statusEl.textContent = '저장 완료!';
+    statusEl.style.color = 'var(--green)';
+  } else {
+    statusEl.textContent = '저장 실패';
+    statusEl.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+}
+
+// ============ GITHUB MODAL ============
+function openGitHubModal() {
+  document.getElementById('githubTokenInput').value = settings.githubToken || '';
+  document.getElementById('githubRepoInput').value = settings.githubRepo || 'surfer-investor/kr-capital';
+  document.getElementById('githubPathInput').value = settings.githubPath || 'data/portfolio.json';
+  document.getElementById('ghModalStatus').textContent = '';
+  document.getElementById('githubModal').classList.add('active');
+}
+
+function closeGitHubModal() {
+  document.getElementById('githubModal').classList.remove('active');
+}
+
+function saveGitHubSettings() {
+  settings.githubToken = document.getElementById('githubTokenInput').value.trim();
+  settings.githubRepo = document.getElementById('githubRepoInput').value.trim();
+  settings.githubPath = document.getElementById('githubPathInput').value.trim() || 'data/portfolio.json';
+  saveSettings();
+  githubSha = null;
+
+  if (settings.githubToken) {
+    updateSyncStatus('connected', '연결됨');
+    // Do an initial push
+    saveToGitHub();
+  } else {
+    updateSyncStatus('', '미연결');
+  }
+  closeGitHubModal();
+}
+
+function disconnectGitHub() {
+  settings.githubToken = '';
+  githubSha = null;
+  saveSettings();
+  updateSyncStatus('', '미연결');
+  closeGitHubModal();
+}
+
+function initSyncStatus() {
+  if (settings.githubToken) {
+    updateSyncStatus('connected', '연결됨');
+  }
+}
+
+// ============ AGENT API ============
+window.KR_CAPITAL_API = {
+  getVersion() { return '1.0.0'; },
+
+  getPortfolio() {
+    const m = getMonth(currentMonth);
+    return { month: currentMonth, holdings: m.holdings, trades: m.trades, cashKRW: m.cashKRW || 0, cashUSD: m.cashUSD || 0, fxRate: getFxRate(), totalAsset: m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m) };
+  },
+
+  getHoldings() { return getMonth(currentMonth).holdings; },
+
+  getCash() {
+    const m = getMonth(currentMonth);
+    return { krw: m.cashKRW || 0, usd: m.cashUSD || 0, totalKRW: getCashKRW(m) };
+  },
+
+  getTotalAsset() {
+    const m = getMonth(currentMonth);
+    return m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m);
+  },
+
+  recordBuy({ name, ticker, market, quantity, price, date }) {
+    if (!name) throw new Error('name is required');
+    const m = getMonth(currentMonth);
+    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+    const mkt = market || 'KR';
+    const totalCost = quantity * price;
+    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    if (existing) {
+      const oldCost = existing.quantity * existing.avgPrice;
+      existing.quantity += quantity;
+      existing.avgPrice = existing.quantity > 0 ? (oldCost + totalCost) / existing.quantity : 0;
+    } else {
+      m.holdings.push({ name, ticker: ticker || '', market: mkt, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+    }
+    if (mkt === 'US') { m.cashUSD = (m.cashUSD || 0) - totalCost; } else { m.cashKRW = (m.cashKRW || 0) - totalCost; }
+    m.trades.push({ date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market: mkt, type: 'buy', quantity, price });
+    saveData(); render();
+    return { success: true, action: 'buy', name, quantity, price };
+  },
+
+  recordSell({ name, ticker, market, quantity, price, date }) {
+    if (!name) throw new Error('name is required');
+    const m = getMonth(currentMonth);
+    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+    const mkt = market || 'KR';
+    const totalCost = quantity * price;
+    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    if (existing) {
+      existing.quantity -= quantity;
+      if (existing.quantity <= 0) m.holdings.splice(m.holdings.indexOf(existing), 1);
+    }
+    if (mkt === 'US') { m.cashUSD = (m.cashUSD || 0) + totalCost; } else { m.cashKRW = (m.cashKRW || 0) + totalCost; }
+    m.trades.push({ date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market: mkt, type: 'sell', quantity, price });
+    saveData(); render();
+    return { success: true, action: 'sell', name, quantity, price };
+  },
+
+  addHolding({ name, ticker, market, quantity, avgPrice, currentPrice }) {
+    if (!name) throw new Error('name is required');
+    const m = getMonth(currentMonth);
+    m.holdings.push({ name, ticker: ticker || '', market: market || 'KR', quantity: quantity || 0, avgPrice: avgPrice || 0, currentPrice: currentPrice || 0, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+    saveData(); render();
+    return { success: true, name };
+  },
+
+  removeHolding(nameOrTicker) {
+    const m = getMonth(currentMonth);
+    const idx = m.holdings.findIndex(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    if (idx === -1) return { success: false, error: 'not found' };
+    m.holdings.splice(idx, 1);
+    saveData(); render();
+    return { success: true, removed: nameOrTicker };
+  },
+
+  updatePrice(ticker, newPrice, force = false) {
+    const m = getMonth(currentMonth);
+    const h = m.holdings.find(h => h.ticker === ticker || h.name === ticker);
+    if (!h) return { success: false, error: 'not found' };
+    const oldPrice = h.currentPrice;
+    if (!force && oldPrice > 0 && Math.abs(newPrice - oldPrice) / oldPrice > 0.7) {
+      return { success: false, error: `비정상 변동: ${oldPrice}→${newPrice} (${((newPrice/oldPrice-1)*100).toFixed(0)}%). force=true로 강제 적용 가능` };
+    }
+    h.currentPrice = newPrice;
+    saveData(); render();
+    return { success: true, ticker, oldPrice, newPrice };
+  },
+
+  setCash({ krw, usd }) {
+    const m = getMonth(currentMonth);
+    if (krw !== undefined) m.cashKRW = krw;
+    if (usd !== undefined) m.cashUSD = usd;
+    if (m.cash !== undefined) delete m.cash;
+    saveData(); render();
+    return { success: true, cashKRW: m.cashKRW, cashUSD: m.cashUSD };
+  },
+
+  setTargetWeight(nameOrTicker, pct) {
+    const m = getMonth(currentMonth);
+    const h = m.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    if (!h) return { success: false, error: 'not found' };
+    h.targetWeight = pct;
+    saveData(); render();
+    return { success: true, name: h.name, targetWeight: pct };
+  },
+
+  setAttractScore(nameOrTicker, score) {
+    const m = getMonth(currentMonth);
+    const h = m.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    if (!h) return { success: false, error: 'not found' };
+    h.attractScore = Math.max(1, Math.min(10, score));
+    saveData(); render();
+    return { success: true, name: h.name, attractScore: h.attractScore };
+  },
+
+  getFxRate() { return getFxRate(); },
+
+  setFxRate(rate) {
+    settings.fxRate = rate;
+    saveSettings();
+    document.getElementById('fxRate').value = rate;
+    render();
+    return { success: true, fxRate: rate };
+  },
+
+  // 출자/회수 기록
+  recordDeposit({ amount, date, reason }) {
+    if (!amount || amount <= 0) throw new Error('amount must be positive');
+    const m = getMonth(currentMonth);
+    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+    m.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: amount, reason: reason || '' });
+    m.cashKRW = (m.cashKRW || 0) + amount;
+    saveData(); render();
+    return { success: true, action: 'deposit', amount, cashKRW: m.cashKRW };
+  },
+
+  recordWithdrawal({ amount, date, reason }) {
+    if (!amount || amount <= 0) throw new Error('amount must be positive');
+    const m = getMonth(currentMonth);
+    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
+    m.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: -amount, reason: reason || '' });
+    m.cashKRW = (m.cashKRW || 0) - amount;
+    saveData(); render();
+    return { success: true, action: 'withdrawal', amount, cashKRW: m.cashKRW };
+  },
+
+  exportData() { return JSON.parse(JSON.stringify(data)); },
+};
 
 // ============ START ============
 init();
+initSyncStatus();
 </script>
 </body>
 </html>
