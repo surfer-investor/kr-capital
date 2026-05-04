@@ -1,23 +1,7 @@
 {
   "months": {
     "2026-05": {
-      "assetHistory": [
-        {
-          "date": "2026-05-03",
-          "totalAsset": 10502700,
-          "note": ""
-        },
-        {
-          "date": "2026-05-01",
-          "totalAsset": 9800000,
-          "note": ""
-        },
-        {
-          "date": "2026-05-02",
-          "totalAsset": 10100000,
-          "note": "삼성전자 상승"
-        }
-      ],
+      "assetHistory": [],
       "holdings": [
         {
           "name": "Venture Global",
@@ -25,7 +9,7 @@
           "market": "US",
           "quantity": 12,
           "avgPrice": 13.15,
-          "currentPrice": 13.15,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
@@ -35,7 +19,7 @@
           "market": "US",
           "quantity": 1,
           "avgPrice": 175.0,
-          "currentPrice": 175.0,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
@@ -45,77 +29,77 @@
           "market": "US",
           "quantity": 13,
           "avgPrice": 18.02,
-          "currentPrice": 18.02,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "블랙야크아이앤씨",
-          "ticker": "478560",
+          "ticker": "478560.KS",
           "market": "KR",
           "quantity": 20,
           "avgPrice": 3685,
-          "currentPrice": 3685,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "이수스페셜티케미컬",
-          "ticker": "457190",
+          "ticker": "457190.KS",
           "market": "KR",
           "quantity": 3,
           "avgPrice": 120425,
-          "currentPrice": 120425,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "DL이앤씨",
-          "ticker": "375500",
+          "ticker": "375500.KS",
           "market": "KR",
           "quantity": 2,
           "avgPrice": 101400,
-          "currentPrice": 101400,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "GS피앤엘",
-          "ticker": "499790",
+          "ticker": "499790.KS",
           "market": "KR",
           "quantity": 7,
           "avgPrice": 56057,
-          "currentPrice": 56057,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "HD현대중공업",
-          "ticker": "329180",
+          "ticker": "329180.KS",
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 662000,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "KODEX 로봇액티브",
-          "ticker": "445290",
+          "ticker": "445290.KS",
           "market": "KR",
           "quantity": 14,
           "avgPrice": 34996,
-          "currentPrice": 34996,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "KODEX 머니마켓액티브",
-          "ticker": "488770",
+          "ticker": "488770.KS",
           "market": "KR",
           "quantity": 17,
           "avgPrice": 104112,
-          "currentPrice": 104112,
+          "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         }
