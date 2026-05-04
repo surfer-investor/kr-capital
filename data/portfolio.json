@@ -5,7 +5,7 @@
         {
           "date": "2026-05-04",
           "totalAsset": 5130580,
-          "note": ""
+          "note": "자동 업데이트"
         }
       ],
       "holdings": [
@@ -85,7 +85,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 680000,
+          "currentPrice": 164300,
           "investmentThesis": "",
           "risk": ""
         },
