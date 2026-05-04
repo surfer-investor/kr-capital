@@ -1,1 +1,179 @@
-{"months": {"2026-05": {"assetHistory": [{"date": "2026-05-04", "totalAsset": 5130580, "note": "자동 업데이트"}], "holdings": [{"name": "Venture Global", "ticker": "VG", "market": "US", "quantity": 12, "avgPrice": 13.15, "currentPrice": 12.73, "investmentThesis": "", "risk": ""}, {"name": "Applied Optoelectronics", "ticker": "AAOI", "market": "US", "quantity": 1, "avgPrice": 175, "currentPrice": 183.44, "investmentThesis": "", "risk": ""}, {"name": "LLYX", "ticker": "LLYX", "market": "US", "quantity": 13, "avgPrice": 18.02, "currentPrice": 18.45, "investmentThesis": "", "risk": ""}, {"name": "블랙야크아이앤씨", "ticker": "478560.KQ", "market": "KR", "quantity": 20, "avgPrice": 3685, "currentPrice": 3490, "investmentThesis": "", "risk": ""}, {"name": "이수스페셜티케미컬", "ticker": "457190.KS", "market": "KR", "quantity": 3, "avgPrice": 120425, "currentPrice": 123600, "investmentThesis": "", "risk": ""}, {"name": "DL이앤씨", "ticker": "375500.KS", "market": "KR", "quantity": 8, "avgPrice": 93299.75, "currentPrice": 91300, "investmentThesis": "", "risk": ""}, {"name": "GS피앤엘", "ticker": "499790.KS", "market": "KR", "quantity": 11, "avgPrice": 55800, "currentPrice": 55200, "investmentThesis": "", "risk": ""}, {"name": "HD현대중공업", "ticker": "329180.KS", "market": "KR", "quantity": 1, "avgPrice": 662000, "currentPrice": 680000, "investmentThesis": "", "risk": ""}, {"name": "KODEX 로봇액티브", "ticker": "445290.KS", "market": "KR", "quantity": 14, "avgPrice": 34996, "currentPrice": 35840, "investmentThesis": "", "risk": ""}, {"name": "KODEX 머니마켓액티브", "ticker": "488770.KS", "market": "KR", "quantity": 5, "avgPrice": 104112, "currentPrice": 104260, "investmentThesis": "", "risk": ""}, {"name": "제이에스링크", "ticker": "127120.KQ", "market": "KR", "quantity": 1, "avgPrice": 17770, "currentPrice": 44100, "investmentThesis": "", "risk": ""}], "trades": [{"date": "2026-05-04", "ticker": "488770.KS", "name": "KODEX 머니마켓액티브", "quantity": 12, "price": 104255, "reason": "", "type": "sell"}, {"date": "2026-05-04", "ticker": "375500.KS", "name": "DL이앤씨", "quantity": 4, "price": 90200, "reason": "", "type": "buy"}, {"date": "2026-05-04", "ticker": "499790.KS", "name": "GS피앤엘", "quantity": 2, "price": 55400, "reason": "", "type": "buy"}, {"date": "2026-05-04", "ticker": "499790.KS", "name": "GS피앤엘", "quantity": 2, "price": 55300, "reason": "실적발표 임박 모멘텀, 중장기 매수", "type": "buy"}, {"date": "2026-05-05", "ticker": "375500.KS", "name": "DL이앤씨", "type": "buy", "quantity": 2, "price": 91400.0, "reason": "호실적 발표 후 주가 하락 (Buy the Dip)", "market": "KR"}], "capitalFlows": [{"date": "2026-05-03", "amount": 10000000, "reason": "초기 출자"}], "operationNote": "", "reflection": "", "nextMonthPlan": "", "cashKRW": 632432, "cashUSD": 429.55}}}
+{
+  "months": {
+    "2026-05": {
+      "assetHistory": [],
+      "holdings": [
+        {
+          "name": "Venture Global",
+          "ticker": "VG",
+          "market": "US",
+          "quantity": 12,
+          "avgPrice": 13.15,
+          "currentPrice": 12.73,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "Applied Optoelectronics",
+          "ticker": "AAOI",
+          "market": "US",
+          "quantity": 1,
+          "avgPrice": 175,
+          "currentPrice": 183.44,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "LLYX",
+          "ticker": "LLYX",
+          "market": "US",
+          "quantity": 13,
+          "avgPrice": 18.02,
+          "currentPrice": 18.45,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "블랙야크아이앤씨",
+          "ticker": "478560.KQ",
+          "market": "KR",
+          "quantity": 20,
+          "avgPrice": 3685,
+          "currentPrice": 3490,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "이수스페셜티케미컬",
+          "ticker": "457190.KS",
+          "market": "KR",
+          "quantity": 3,
+          "avgPrice": 120425,
+          "currentPrice": 123600,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "DL이앤씨",
+          "ticker": "375500.KS",
+          "market": "KR",
+          "quantity": 8,
+          "avgPrice": 93299.75,
+          "currentPrice": 91300,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "GS피앤엘",
+          "ticker": "499790.KS",
+          "market": "KR",
+          "quantity": 11,
+          "avgPrice": 55800,
+          "currentPrice": 55200,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "HD현대중공업",
+          "ticker": "329180.KS",
+          "market": "KR",
+          "quantity": 1,
+          "avgPrice": 662000,
+          "currentPrice": 680000,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "KODEX 로봇액티브",
+          "ticker": "445290.KS",
+          "market": "KR",
+          "quantity": 14,
+          "avgPrice": 34996,
+          "currentPrice": 35840,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "KODEX 머니마켓액티브",
+          "ticker": "488770.KS",
+          "market": "KR",
+          "quantity": 5,
+          "avgPrice": 104112,
+          "currentPrice": 104260,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "제이에스링크",
+          "ticker": "127120.KQ",
+          "market": "KR",
+          "quantity": 1,
+          "avgPrice": 17770,
+          "currentPrice": 44100,
+          "investmentThesis": "",
+          "risk": ""
+        }
+      ],
+      "trades": [
+        {
+          "date": "2026-05-04",
+          "ticker": "488770.KS",
+          "name": "KODEX 머니마켓액티브",
+          "quantity": 12,
+          "price": 104255,
+          "reason": "",
+          "type": "sell"
+        },
+        {
+          "date": "2026-05-04",
+          "ticker": "375500.KS",
+          "name": "DL이앤씨",
+          "quantity": 4,
+          "price": 90200,
+          "reason": "",
+          "type": "buy"
+        },
+        {
+          "date": "2026-05-04",
+          "ticker": "499790.KS",
+          "name": "GS피앤엘",
+          "quantity": 2,
+          "price": 55400,
+          "reason": "",
+          "type": "buy"
+        },
+        {
+          "date": "2026-05-04",
+          "ticker": "499790.KS",
+          "name": "GS피앤엘",
+          "quantity": 2,
+          "price": 55300,
+          "reason": "실적발표 임박 모멘텀, 중장기 매수",
+          "type": "buy"
+        },
+        {
+          "date": "2026-05-05",
+          "ticker": "375500.KS",
+          "name": "DL이앤씨",
+          "type": "buy",
+          "quantity": 2,
+          "price": 91400,
+          "reason": "호실적 발표 후 주가 하락 (Buy the Dip)",
+          "market": "KR"
+        }
+      ],
+      "capitalFlows": [
+        {
+          "date": "2026-05-03",
+          "amount": 10000000,
+          "reason": "초기 출자"
+        }
+      ],
+      "operationNote": "",
+      "reflection": "",
+      "nextMonthPlan": "",
+      "cashKRW": 632432,
+      "cashUSD": 429.55
+    }
+  }
+}
