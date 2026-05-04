@@ -49,17 +49,17 @@
           "market": "KR",
           "quantity": 3,
           "avgPrice": 120425,
-          "currentPrice": 123100,
+          "currentPrice": 123300,
           "investmentThesis": "",
           "risk": ""
         },
         {
           "name": "DL이앤씨",
-          "ticker": "375500.KS",
+          "ticker": "375500.KQ",
           "market": "KR",
           "quantity": 6,
           "avgPrice": 93933,
-          "currentPrice": 91700,
+          "currentPrice": 33600,
           "investmentThesis": "",
           "risk": ""
         },
@@ -69,7 +69,7 @@
           "market": "KR",
           "quantity": 9,
           "avgPrice": 55911,
-          "currentPrice": 55400,
+          "currentPrice": 55300,
           "investmentThesis": "",
           "risk": ""
         },
@@ -109,7 +109,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 17770,
-          "currentPrice": 42950,
+          "currentPrice": 42900,
           "investmentThesis": "",
           "risk": ""
         }
@@ -143,7 +143,13 @@
           "reason": ""
         }
       ],
-      "capitalFlows": [],
+      "capitalFlows": [
+        {
+          "date": "2026-05-03",
+          "amount": 10000000,
+          "reason": "초기 출자"
+        }
+      ],
       "operationNote": "",
       "reflection": "",
       "nextMonthPlan": "",
