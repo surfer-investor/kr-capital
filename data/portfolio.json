@@ -135,37 +135,37 @@
           "date": "2026-05-04",
           "ticker": "488770.KS",
           "name": "KODEX 머니마켓액티브",
-          "side": "sell",
           "quantity": 12,
           "price": 104255,
-          "reason": ""
+          "reason": "",
+          "type": "sell"
         },
         {
           "date": "2026-05-04",
           "ticker": "375500.KS",
           "name": "DL이앤씨",
-          "side": "buy",
           "quantity": 4,
           "price": 90200,
-          "reason": ""
+          "reason": "",
+          "type": "buy"
         },
         {
           "date": "2026-05-04",
           "ticker": "499790.KS",
           "name": "GS피앤엘",
-          "side": "buy",
           "quantity": 2,
           "price": 55400,
-          "reason": ""
+          "reason": "",
+          "type": "buy"
         },
         {
           "date": "2026-05-04",
           "ticker": "499790",
           "name": "GS피앤엘",
-          "side": "buy",
           "quantity": 2,
           "price": 55300.0,
-          "reason": "실적발표 임박 모멘텀, 중장기 매수"
+          "reason": "실적발표 임박 모멘텀, 중장기 매수",
+          "type": "buy"
         }
       ],
       "capitalFlows": [
@@ -179,8 +179,7 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 815232,
-      "cashUSD": 429.55,
-      "cash": 1012680
+      "cashUSD": 429.55
     }
   }
 }
