@@ -9,8 +9,8 @@
         },
         {
           "date": "2026-05-05",
-          "totalAsset": 4540503.0,
-          "note": "자동 업데이트"
+          "totalAsset": 5340530,
+          "note": "자동 업데이트 (FX 보정)"
         }
       ],
       "holdings": [

@@ -806,15 +806,15 @@ textarea {
   <div class="page" id="page-notes">
     <div class="card">
       <div class="card-title">이번 달 운용 내역</div>
-      <textarea id="operationNote" placeholder="이번 달 주요 운용 내용을 적어주세요..." onchange="saveNotes()"></textarea>
+      <textarea id="operationNote" placeholder="이번 달 주요 운용 내용을 적어주세요..." oninput="saveNotesDebounced()" onblur="saveNotes()"></textarea>
     </div>
     <div class="card">
       <div class="card-title">반성 & 잘한 점</div>
-      <textarea id="reflectionNote" placeholder="반성할 점, 잘한 점..." onchange="saveNotes()"></textarea>
+      <textarea id="reflectionNote" placeholder="반성할 점, 잘한 점..." oninput="saveNotesDebounced()" onblur="saveNotes()"></textarea>
     </div>
     <div class="card">
       <div class="card-title">다음 달 계획</div>
-      <textarea id="planNote" placeholder="다음 달 운용 계획..." onchange="saveNotes()"></textarea>
+      <textarea id="planNote" placeholder="다음 달 운용 계획..." oninput="saveNotesDebounced()" onblur="saveNotes()"></textarea>
     </div>
   </div>
 </div>
@@ -917,6 +917,7 @@ function loadData() {
 }
 
 function saveData() {
+  data.lastModified = Date.now();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   if (settings.githubToken) debouncedSaveToGitHub();
 }
@@ -978,6 +979,25 @@ function switchPage(name) {
 }
 
 // ============ INIT ============
+// 외부 agent가 GitHub에 직접 push한 잘못된 totalAsset(US 환율 미반영) 자가 치유
+// 오늘자 assetHistory만 재계산. 과거 항목은 그대로 둠(과거 시세를 알 수 없으므로).
+function sanitizeTodayAssetHistory(m) {
+  if (!m || !Array.isArray(m.assetHistory)) return false;
+  const today = new Date().toISOString().split('T')[0];
+  const idx = m.assetHistory.findIndex(a => a.date === today);
+  if (idx === -1) return false;
+  const computed = Math.round(m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m));
+  const stored = Math.round(m.assetHistory[idx].totalAsset || 0);
+  // 1,000원 이상 차이 나면 외부 agent 버그로 판단해 자동 보정
+  if (Math.abs(stored - computed) > 1000) {
+    console.warn('[자가치유] 오늘자 총자산 보정:', stored, '→', computed, '(차이', stored-computed+'원)');
+    m.assetHistory[idx].totalAsset = computed;
+    m.assetHistory[idx].note = (m.assetHistory[idx].note || '') + ' (자동 보정)';
+    return true;
+  }
+  return false;
+}
+
 async function init() {
   loadData();
   applyTheme();
@@ -992,6 +1012,10 @@ async function init() {
   document.getElementById('monthSelect').value = currentMonth;
   setDefaultDates();
   updateMarketLabel();
+
+  // GitHub에서 받은 오늘자 자산 스냅샷 검증·보정
+  if (sanitizeTodayAssetHistory(getMonth(currentMonth))) saveData();
+
   render();
 
   if (synced) updateSyncStatus('connected', '동기화 완료');
@@ -1488,12 +1512,24 @@ function removeAssetHistory(idx) {
 
 // ============ NOTES ============
 function renderNotes(m) {
-  document.getElementById('operationNote').value = m.operationNote || '';
-  document.getElementById('reflectionNote').value = m.reflection || '';
-  document.getElementById('planNote').value = m.nextMonthPlan || '';
+  // 사용자가 타이핑 중인 textarea는 덮어쓰지 않음 (focus 보호)
+  const active = document.activeElement;
+  const op = document.getElementById('operationNote');
+  const re = document.getElementById('reflectionNote');
+  const pl = document.getElementById('planNote');
+  if (active !== op) op.value = m.operationNote || '';
+  if (active !== re) re.value = m.reflection || '';
+  if (active !== pl) pl.value = m.nextMonthPlan || '';
+}
+
+let notesSaveTimer = null;
+function saveNotesDebounced() {
+  clearTimeout(notesSaveTimer);
+  notesSaveTimer = setTimeout(saveNotes, 500);
 }
 
 function saveNotes() {
+  clearTimeout(notesSaveTimer);
   const m = getMonth(currentMonth);
   m.operationNote = document.getElementById('operationNote').value;
   m.reflection = document.getElementById('reflectionNote').value;
@@ -1584,6 +1620,31 @@ function importJSON(event) {
 }
 
 // ============ YAHOO FINANCE 시세 조회 ============
+
+// 개별 종목들을 동시성 제한 하에 병렬 조회
+async function fetchPricesWithConcurrency(tickers, status, label, concurrency = 3) {
+  const result = {};
+  let done = 0;
+  const total = tickers.length;
+  const queue = [...tickers];
+
+  async function worker() {
+    while (queue.length) {
+      const t = queue.shift();
+      try {
+        const price = await fetchYahooPrice(t);
+        if (price !== null && price > 0) result[t] = price;
+      } catch(e) { /* skip */ }
+      done++;
+      if (status) status.textContent = label + ' (' + done + '/' + total + ')';
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, total) }, worker);
+  await Promise.all(workers);
+  return result;
+}
+
 async function updatePrices() {
   const m = getMonth(currentMonth);
   const holdingsWithTicker = m.holdings.filter(h => h.ticker);
@@ -1597,32 +1658,49 @@ async function updatePrices() {
   status.style.color = 'var(--text-dim)';
 
   const tickers = holdingsWithTicker.map(h => h.ticker);
-  let updated = 0, failed = 0, errors = [];
+  const priceMap = {};
+  const warnings = [];
 
   // Step 1: 배치 조회 시도 (1회 API 호출로 전체)
-  const priceMap = await fetchYahooPricesBatch(tickers);
+  Object.assign(priceMap, await fetchYahooPricesBatch(tickers));
   const batchCount = Object.keys(priceMap).length;
 
-  // Step 2: 배치에서 못 가져온 종목만 개별 조회
-  const remaining = holdingsWithTicker.filter(h => !priceMap[h.ticker]);
-  if (remaining.length > 0 && remaining.length < holdingsWithTicker.length) {
-    status.textContent = batchCount + '종목 일괄 완료, ' + remaining.length + '종목 개별 조회 중...';
-  } else if (remaining.length === holdingsWithTicker.length) {
+  // Step 2: 배치에서 못 가져온 종목만 병렬 개별 조회
+  let missing = tickers.filter(t => !priceMap[t]);
+  if (missing.length > 0 && missing.length < tickers.length) {
+    status.textContent = batchCount + '종목 일괄 완료, ' + missing.length + '종목 개별 조회 중...';
+  } else if (missing.length === tickers.length) {
     status.textContent = '일괄 실패, 개별 조회 중...';
   }
+  if (missing.length) {
+    Object.assign(priceMap, await fetchPricesWithConcurrency(missing, status, '개별 조회 중', 3));
+  }
 
-  for (let i = 0; i < remaining.length; i++) {
-    const h = remaining[i];
-    status.textContent = h.name + ' 개별 조회 (' + (i+1) + '/' + remaining.length + ')';
-    try {
-      const price = await fetchYahooPrice(h.ticker);
-      if (price !== null && price > 0) priceMap[h.ticker] = price;
-    } catch(e) { /* skip */ }
-    if (i < remaining.length - 1) await new Promise(r => setTimeout(r, 1500));
+  // Step 3: 그래도 실패한 종목 자동 재시도 (한 번 클릭으로 끝나도록)
+  missing = tickers.filter(t => !priceMap[t]);
+  if (missing.length) {
+    status.textContent = '실패 ' + missing.length + '종목 자동 재시도 중...';
+    await new Promise(r => setTimeout(r, 1500)); // 쿨다운
+    // 재시도: 단일 티커 배치 + 개별 조회를 병렬로
+    const retryResults = await Promise.all(missing.map(async (t) => {
+      try {
+        const single = await fetchYahooPricesBatch([t]);
+        if (single[t]) return [t, single[t]];
+      } catch(e) {}
+      try {
+        const p = await fetchYahooPrice(t);
+        if (p !== null && p > 0) return [t, p];
+      } catch(e) {}
+      return [t, null];
+    }));
+    for (const [t, p] of retryResults) {
+      if (p) priceMap[t] = p;
+    }
   }
 
   // 결과 적용 (가격 검증 포함)
-  const warnings = [];
+  let updated = 0, failed = 0;
+  const errors = [];
   for (const h of holdingsWithTicker) {
     if (priceMap[h.ticker]) {
       const newPrice = priceMap[h.ticker];
@@ -1920,69 +1998,80 @@ async function fetchYahooPricesBatch(tickers) {
 
   function extractFromSpark(json) {
     const map = {};
+    if (!json || typeof json !== 'object') return map;
+    // 신 포맷: {"SYMBOL":{"close":[price], "chartPreviousClose":..., "symbol":"SYMBOL"}}
+    for (const [key, obj] of Object.entries(json)) {
+      if (!obj || typeof obj !== 'object') continue;
+      if (key === 'spark' || key === 'finance' || key === 'error') continue;
+      const sym = obj.symbol || key;
+      const closeArr = Array.isArray(obj.close) ? obj.close.filter(v => v != null) : null;
+      const price = closeArr && closeArr.length ? closeArr[closeArr.length - 1] : null;
+      if (sym && price && price > 0) map[sym] = price;
+    }
+    // 구 포맷 호환: {spark:{result:[{symbol, response:[{meta:{regularMarketPrice}}]}]}}
     const results = json?.spark?.result || [];
     for (const r of results) {
-      const sym = r.symbol;
-      const price = r.response?.[0]?.meta?.regularMarketPrice;
-      if (sym && price && price > 0) map[sym] = price;
+      const sym = r?.symbol;
+      const price = r?.response?.[0]?.meta?.regularMarketPrice;
+      if (sym && price && price > 0 && !map[sym]) map[sym] = price;
     }
     return map;
   }
 
   function validate(m) { if (!Object.keys(m).length) throw new Error('empty'); return m; }
 
-  // 병렬 레이스: 먼저 성공하는 프록시 사용
+  // 병렬 레이스: 먼저 성공하는 프록시 사용 (corsproxy.io는 Cloudflare로 막혀 제거)
   try {
     return await Promise.any([
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl1), 18000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl1), 15000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(j => validate(extractFromSpark(j))),
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl2), 18000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl2), 15000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(j => validate(extractFromSpark(j))),
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(sparkUrl1), 18000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(w => validate(extractFromSpark(JSON.parse(w.contents)))),
-      fetchWithTimeout('https://corsproxy.io/' + sparkUrl1, 15000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(j => validate(extractFromSpark(j)))
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(w => validate(extractFromSpark(JSON.parse(w.contents))))
     ]);
-  } catch(e) { return {}; }
+  } catch(e) { console.warn('[fetchYahooPricesBatch] all proxies failed, falling back to individual'); return {}; }
 }
 
-// 개별 종목 시세 조회 - .KS/.KQ 동시 병렬 레이스
+// 개별 종목 시세 조회 - 원티커 우선 → 실패시 .KS↔.KQ 교차상장 fallback
 async function fetchYahooPrice(ticker) {
-  const tickersToTry = [ticker];
-  if (ticker.endsWith('.KS')) tickersToTry.push(ticker.replace('.KS', '.KQ'));
-
   function extractPrice(json) {
     return json?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
   }
 
-  function makePromises(t) {
+  function tryTicker(t) {
     const u1 = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(t) + '?range=1d&interval=1d';
     const u2 = 'https://query2.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(t) + '?range=1d&interval=1d';
-    const ok = p => { if (!p || p <= 0) throw new Error(); return {price: p, t}; };
-    return [
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u1), 15000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    const ok = p => { if (!p || p <= 0) throw new Error('no price'); return p; };
+    return Promise.any([
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u1), 12000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(j => ok(extractPrice(j))),
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u2), 15000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(u2), 12000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(j => ok(extractPrice(j))),
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(u1), 15000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(w => ok(extractPrice(JSON.parse(w.contents)))),
-      fetchWithTimeout('https://corsproxy.io/' + u1, 12000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then(j => ok(extractPrice(j)))
-    ];
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(w => ok(extractPrice(JSON.parse(w.contents))))
+    ]).catch(e => { console.warn('[fetchYahooPrice]', t, 'all proxies failed'); return null; });
   }
 
-  try {
-    const result = await Promise.any(tickersToTry.flatMap(makePromises));
-    return result.price;
-  } catch(e) { return null; }
+  // 1차: 원래 티커
+  let price = await tryTicker(ticker);
+  if (price && price > 0) return price;
+
+  // 2차: 교차상장 fallback (.KS↔.KQ)
+  let alt = null;
+  if (ticker.endsWith('.KS')) alt = ticker.replace('.KS', '.KQ');
+  else if (ticker.endsWith('.KQ')) alt = ticker.replace('.KQ', '.KS');
+  if (alt) {
+    price = await tryTicker(alt);
+    if (price && price > 0) return price;
+  }
+  return null;
 }
 
 // ============ GITHUB SYNC ============
@@ -2008,6 +2097,14 @@ async function autoSyncFromGitHub() {
         const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
         const imported = JSON.parse(decoded);
         if (imported.months) {
+          // 로컬이 더 최신이면 덮어쓰지 않음 (아직 push되지 않은 변경분 보호)
+          const localTs = data?.lastModified || 0;
+          const remoteTs = imported?.lastModified || 0;
+          if (localTs > remoteTs && Object.keys(data.months || {}).length > 0) {
+            console.log('Local data is newer, skipping GitHub overwrite');
+            if (settings.githubToken) debouncedSaveToGitHub();
+            return false;
+          }
           data = imported;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           return true;
@@ -2020,6 +2117,12 @@ async function autoSyncFromGitHub() {
       if (res.ok) {
         const imported = await res.json();
         if (imported.months) {
+          const localTs = data?.lastModified || 0;
+          const remoteTs = imported?.lastModified || 0;
+          if (localTs > remoteTs && Object.keys(data.months || {}).length > 0) {
+            console.log('Local data is newer, skipping GitHub overwrite');
+            return false;
+          }
           data = imported;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           return true;
