@@ -55,7 +55,7 @@
           "market": "KR",
           "quantity": 20,
           "avgPrice": 3685,
-          "currentPrice": 3490,
+          "currentPrice": 3355,
           "investmentThesis": "",
           "risk": ""
         },
@@ -197,5 +197,5 @@
       "cashUSD": 429.55
     }
   },
-  "lastModified": 1778082040600
+  "lastModified": 1778082097386
 }
