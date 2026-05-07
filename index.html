@@ -677,6 +677,7 @@ textarea {
               <th class="num">현재가</th>
               <th class="num">평가금액(원)</th>
               <th class="num">수익률</th>
+              <th class="num">현재비중</th>
               <th class="num">목표비중</th>
               <th class="num">매력점수</th>
               <th class="num">TP</th>
@@ -778,12 +779,24 @@ textarea {
     </div>
 
     <div class="card">
-      <div class="card-title">종목별 누적 실현손익</div>
+      <div class="card-title">날짜별 매매 기록</div>
+      <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px">이달의 매매를 날짜순으로 그룹핑. 헤더에 그날의 실현손익 합계.</div>
       <table>
         <thead>
-          <tr><th>종목</th><th>시장</th><th class="num">누적 실현손익</th><th class="num">매도 횟수</th></tr>
+          <tr><th>종목</th><th>시장</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="num">실현손익</th></tr>
         </thead>
-        <tbody id="realizedPnLByTickerBody"></tbody>
+        <tbody id="tradesByDateBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">종목별 매매 기록 (전체 기간)</div>
+      <div style="color:var(--text-dim);font-size:11px;margin-bottom:8px">모든 매매를 종목으로 그룹핑. 헤더에 그 종목의 누적 실현손익.</div>
+      <table>
+        <thead>
+          <tr><th>날짜</th><th>시장</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="num">실현손익</th></tr>
+        </thead>
+        <tbody id="tradesByTickerBody"></tbody>
       </table>
     </div>
 
@@ -1276,7 +1289,8 @@ function render() {
   renderAssetHistory();
   renderNotes();
   renderPortfolioAnalysis();
-  renderRealizedPnLByTicker();
+  renderTradesByDate();
+  renderTradesByTicker();
   document.getElementById('cashKRWInput').value = data.cashKRW || '';
   document.getElementById('cashUSDInput').value = data.cashUSD || '';
   const cashTotalEl = document.getElementById('cashTotal');
@@ -1452,14 +1466,16 @@ function renderStockPie() {
 // ============ HOLDINGS ============
 function renderHoldings() {
   const tbody = document.getElementById('holdingsBody');
-  if (!data.holdings.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
+  if (!data.holdings.length) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
 
 
   const fx = getFxRate();
+  const totalAsset = data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW();
   tbody.innerHTML = data.holdings.map((h, i) => {
     const ev = evalKRW(h);
     const co = costKRW(h);
     const pnl = co ? ((ev - co) / co * 100) : 0;
+    const curWeight = totalAsset ? (ev / totalAsset * 100) : 0;
     const priceDisplay = h.market === 'US' ? `$${fmt(h.avgPrice)}` : fmt(h.avgPrice);
     const curDisplay = h.market === 'US' ? `$${fmt(h.currentPrice)}` : fmt(h.currentPrice);
 
@@ -1471,6 +1487,7 @@ function renderHoldings() {
       <td class="num">${curDisplay}</td>
       <td class="num">${fmtWon(ev)}</td>
       <td class="num ${pnl>=0?'positive':'negative'}">${fmtPct(pnl)}</td>
+      <td class="num">${curWeight.toFixed(1)}%</td>
       <td class="num"><input type="number" value="${h.targetWeight||0}" onchange="updateHolding(${i},'targetWeight',Number(this.value))" style="width:60px;font-size:12px;text-align:right" min="0" max="100" step="1">%</td>
       <td class="num"><input type="number" value="${h.attractScore||0}" onchange="updateHolding(${i},'attractScore',Number(this.value))" style="width:50px;font-size:12px;text-align:right" min="1" max="10" step="1"></td>
       <td class="num"><input type="number" value="${h.tp||''}" onchange="updateHolding(${i},'tp',Number(this.value))" style="width:80px;font-size:12px;text-align:right" placeholder="목표가"></td>
@@ -1735,21 +1752,110 @@ function removeAssetHistory(origIdx) {
   data.assetHistory.splice(origIdx, 1); saveData(); render();
 }
 
-// ============ REALIZED P&L BY TICKER ============
-function renderRealizedPnLByTicker() {
-  const el = document.getElementById('realizedPnLByTickerBody');
+// ============ GROUPED TRADES (BY DATE / BY TICKER) ============
+// 그룹 헤더 + 그 그룹의 모든 trade row 렌더 헬퍼
+function _renderTradeRow(t, opts = {}) {
+  const cur = t.currency || (t.market === 'US' ? 'USD' : 'KRW');
+  const priceCell = fmtPrice(t.price, cur);
+  const amountCell = fmtMoney(t.quantity * t.price, cur);
+  let pnlCell;
+  if (t.type === 'sell') {
+    if (t.realizedPnL == null) pnlCell = `<td class="num" style="color:var(--text-dim)">—</td>`;
+    else {
+      const cls = t.realizedPnL >= 0 ? 'positive' : 'negative';
+      pnlCell = `<td class="num ${cls}">${fmtMoneySign(t.realizedPnL, cur)}</td>`;
+    }
+  } else {
+    pnlCell = `<td class="num" style="color:var(--text-dim)">·</td>`;
+  }
+  const typeCell = t.type === 'buy' ? '<span class="positive">매수</span>' : '<span class="negative">매도</span>';
+  // First cell varies by view
+  let firstCell;
+  if (opts.firstCol === 'date') firstCell = `<td>${t.date}</td>`;
+  else if (opts.firstCol === 'name') {
+    const tickerLine = t.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+t.ticker+'</span>' : '';
+    firstCell = `<td>${t.name}${tickerLine}</td>`;
+  } else firstCell = '';
+  return `<tr>
+    ${firstCell}
+    <td>${t.market || '-'}</td>
+    <td>${typeCell}</td>
+    <td class="num">${fmt(t.quantity)}</td>
+    <td class="num">${priceCell}</td>
+    <td class="num">${amountCell}</td>
+    ${pnlCell}
+  </tr>`;
+}
+
+// 그룹 헤더 (실현손익 KRW/USD 분리 표시)
+function _groupHeaderHTML(label, sells, colspan) {
+  const krSells = sells.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'KRW' && t.realizedPnL != null);
+  const usSells = sells.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'USD' && t.realizedPnL != null);
+  const krSum = krSells.reduce((s, t) => s + t.realizedPnL, 0);
+  const usSum = usSells.reduce((s, t) => s + t.realizedPnL, 0);
+  const parts = [];
+  if (krSells.length) parts.push(`<span class="${krSum>=0?'positive':'negative'}">한국 ${fmtMoneySign(krSum,'KRW')}</span> <span style="color:var(--text-dim);font-size:11px">(${krSells.length}건)</span>`);
+  if (usSells.length) parts.push(`<span class="${usSum>=0?'positive':'negative'}">미국 ${fmtMoneySign(usSum,'USD')}</span> <span style="color:var(--text-dim);font-size:11px">(${usSells.length}건)</span>`);
+  const pnlStr = parts.length ? '<span style="color:var(--text-dim);margin:0 8px">·</span>실현 ' + parts.join('<span style="color:var(--text-dim);margin:0 6px">/</span>') : '';
+  return `<tr style="background:var(--surface2)"><td colspan="${colspan}" style="padding:8px 12px;font-weight:600">${label}${pnlStr}</td></tr>`;
+}
+
+function renderTradesByDate() {
+  const el = document.getElementById('tradesByDateBody');
   if (!el) return;
-  const rows = realizedPnLByTicker();
-  if (!rows.length) { el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">실현손익 기록 없음</td></tr>'; return; }
-  el.innerHTML = rows.map(r => {
-    const cls = r.total >= 0 ? 'positive' : 'negative';
-    return `<tr>
-      <td><strong>${r.name}</strong>${r.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+r.ticker+'</span>' : ''}</td>
-      <td>${r.market || '-'}</td>
-      <td class="num ${cls}">${fmtMoneySign(r.total, r.currency)}</td>
-      <td class="num">${r.count}</td>
-    </tr>`;
-  }).join('');
+  const monthTrades = tradesForMonth(currentMonth);
+  if (!monthTrades.length) { el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
+  // Group by date (newest first)
+  const byDate = {};
+  for (const t of monthTrades) {
+    const d = t.date || 'unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(t);
+  }
+  const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+  let html = '';
+  for (const d of dates) {
+    const ts = byDate[d];
+    const sells = ts.filter(t => t.type === 'sell');
+    html += _groupHeaderHTML(d, sells, 7);
+    // 매도 먼저 (실현손익 보기 좋게), 그 다음 매수
+    const sorted = [...ts].sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'sell' ? -1 : 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    for (const t of sorted) html += _renderTradeRow(t, { firstCol: 'name' });
+  }
+  el.innerHTML = html;
+}
+
+function renderTradesByTicker() {
+  const el = document.getElementById('tradesByTickerBody');
+  if (!el) return;
+  if (!data.trades.length) { el.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
+  // Group by ticker (or name as fallback). Sorting: 누적 실현손익 절대값 큰 순, P&L 없는 그룹은 뒤로.
+  const byKey = {};
+  for (const t of data.trades) {
+    const k = t.ticker || t.name || 'unknown';
+    if (!byKey[k]) byKey[k] = { name: t.name, ticker: t.ticker, market: t.market, trades: [] };
+    byKey[k].trades.push(t);
+  }
+  const groups = Object.entries(byKey).map(([k, g]) => {
+    const sells = g.trades.filter(t => t.type === 'sell' && t.realizedPnL != null);
+    const sumAbs = sells.reduce((s, t) => s + Math.abs(t.realizedPnL || 0), 0);
+    return { key: k, ...g, sumAbs };
+  }).sort((a, b) => b.sumAbs - a.sumAbs);
+  let html = '';
+  for (const g of groups) {
+    const ts = g.trades;
+    const sells = ts.filter(t => t.type === 'sell');
+    const tickerLine = g.ticker ? ` <span style="color:var(--text-dim);font-size:11px">(${g.ticker})</span>` : '';
+    const label = `${g.name || g.key}${tickerLine} <span style="color:var(--text-dim);font-size:11px;margin-left:6px">[${g.market || '-'}]</span>`;
+    html += _groupHeaderHTML(label, sells, 7);
+    // 날짜 내림차순
+    const sorted = [...ts].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    for (const t of sorted) html += _renderTradeRow(t, { firstCol: 'date' });
+  }
+  el.innerHTML = html;
 }
 
 // ============ NOTES ============
