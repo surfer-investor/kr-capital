@@ -190,12 +190,12 @@
           "reason": "회수"
         }
       ],
-      "operationNote": "",
+      "operationNote": "+",
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 421784,
       "cashUSD": 429.55
     }
   },
-  "lastModified": 1778128896735
+  "lastModified": 1778128922255
 }
