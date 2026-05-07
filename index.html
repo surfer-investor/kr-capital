@@ -887,11 +887,12 @@ textarea {
     </div>
     <div class="modal-info">
       PAT는 <strong>repo</strong> 또는 <strong>Contents: Read and write</strong> 권한이 필요합니다.<br>
-      토큰은 브라우저 localStorage에만 저장됩니다.
+      토큰은 브라우저 localStorage에만 저장됩니다.<br>
+      "일시 중지"는 토큰을 보존한 채 자동 동기화만 멈춥니다. 토큰을 완전히 지우려면 입력란을 비우고 저장하세요.
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeGitHubModal()">취소</button>
-      <button class="btn btn-danger" onclick="disconnectGitHub()">연결 해제</button>
+      <button class="btn" onclick="disconnectGitHub()">동기화 일시 중지</button>
       <button class="btn btn-primary" onclick="saveGitHubSettings()">저장</button>
     </div>
     <hr class="modal-divider">
@@ -1659,7 +1660,6 @@ async function updatePrices() {
 
   const tickers = holdingsWithTicker.map(h => h.ticker);
   const priceMap = {};
-  const warnings = [];
 
   // Step 1: 배치 조회 시도 (1회 API 호출로 전체)
   Object.assign(priceMap, await fetchYahooPricesBatch(tickers));
@@ -1698,30 +1698,30 @@ async function updatePrices() {
     }
   }
 
-  // 결과 적용 (가격 검증 포함)
+  // 결과 적용
+  // 소스 단계 검증(spark의 35% chartPreviousClose 체크 + chart endpoint의 MUTUALFUND 필터 + 35% 체크)
+  // 통과한 가격은 신뢰. priceMap에 들어온 가격은 무조건 적용한다.
+  // stored 값과 차이가 커도 그건 "기존 저장값이 잘못됐던 케이스 정상화"로 간주(투명성 위해 로깅).
   let updated = 0, failed = 0;
   const errors = [];
+  const corrections = []; // 30%+ 변동: 큰 변화이지만 검증 통과한 가격이므로 적용. 통보만.
   for (const h of holdingsWithTicker) {
     if (priceMap[h.ticker]) {
       const newPrice = priceMap[h.ticker];
       const oldPrice = h.currentPrice;
-      // 기존 가격이 있을 때, ±70% 이상 변동이면 프록시 오류 가능성 → 경고 후 무시
-      if (oldPrice > 0 && Math.abs(newPrice - oldPrice) / oldPrice > 0.7) {
-        warnings.push(`${h.name}: ${oldPrice.toLocaleString()}→${newPrice.toLocaleString()} (${((newPrice/oldPrice-1)*100).toFixed(0)}% 변동, 무시됨)`);
-        failed++;
-        errors.push(h.ticker + '⚠');
-      } else {
-        h.currentPrice = newPrice;
-        updated++;
+      h.currentPrice = newPrice;
+      updated++;
+      if (oldPrice > 0 && Math.abs(newPrice - oldPrice) / oldPrice > 0.3) {
+        const pct = ((newPrice / oldPrice - 1) * 100).toFixed(0);
+        corrections.push(`${h.name} (${h.ticker}): ${oldPrice.toLocaleString()} → ${newPrice.toLocaleString()} (${pct}%)`);
       }
     } else {
       failed++;
       errors.push(h.ticker);
     }
   }
-  if (warnings.length) {
-    console.warn('[시세 검증] 비정상 가격 감지:', warnings);
-    alert('⚠ 비정상 가격 변동 감지 (프록시 오류 가능):\n\n' + warnings.join('\n') + '\n\n해당 종목은 업데이트를 건너뛰었습니다.');
+  if (corrections.length) {
+    console.log('[시세 정상화] 30% 초과 변동 (모두 검증 통과·적용됨):\n' + corrections.join('\n'));
   }
 
   // 시세 업데이트 후 오늘 자산 기록 자동 갱신
@@ -1739,12 +1739,13 @@ async function updatePrices() {
   btn.textContent = '시세 업데이트';
 
   const timeStr = new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+  const correctionBadge = corrections.length ? ` · 큰 변동 ${corrections.length}건 (콘솔 확인)` : '';
   if (failed === 0) {
-    status.innerHTML = updated + '종목 업데이트 완료 (' + timeStr + ')';
+    status.innerHTML = updated + '종목 업데이트 완료 (' + timeStr + ')' + correctionBadge;
     status.style.color = 'var(--green)';
   } else {
-    const retryTickers = errors.map(e => e.replace('⚠', '')).filter(e => e);
-    status.innerHTML = updated + '종목 성공, ' + failed + '종목 실패 (' + errors.join(', ') + ') <button class="btn btn-sm" onclick="retryFailed([' + retryTickers.map(e => "'" + e + "'").join(',') + '])" style="margin-left:6px;font-size:11px">재시도</button>';
+    const retryTickers = errors.filter(e => e);
+    status.innerHTML = updated + '종목 성공, ' + failed + '종목 실패 (' + errors.join(', ') + ')' + correctionBadge + ' <button class="btn btn-sm" onclick="retryFailed([' + retryTickers.map(e => "'" + e + "'").join(',') + '])" style="margin-left:6px;font-size:11px">재시도</button>';
     status.style.color = 'var(--orange)';
   }
 }
@@ -2006,7 +2007,18 @@ async function fetchYahooPricesBatch(tickers) {
       const sym = obj.symbol || key;
       const closeArr = Array.isArray(obj.close) ? obj.close.filter(v => v != null) : null;
       const price = closeArr && closeArr.length ? closeArr[closeArr.length - 1] : null;
-      if (sym && price && price > 0) map[sym] = price;
+      if (!sym || !price || price <= 0) continue;
+      // 한국 주식(±30% 일일 상한선) 정합성 체크: chartPreviousClose 대비 변동이
+      // 35%를 초과하면 프록시/심볼 혼동 가능성 → 거부 후 개별 fallback 유도
+      const prev = obj.chartPreviousClose;
+      if (prev && prev > 0 && /\.(KS|KQ)$/.test(sym)) {
+        const pct = Math.abs(price - prev) / prev;
+        if (pct > 0.35) {
+          console.warn('[extractFromSpark] anomalous price for', sym, ':', prev, '→', price, '(' + (pct*100).toFixed(1) + '%) — rejected');
+          continue;
+        }
+      }
+      map[sym] = price;
     }
     // 구 포맷 호환: {spark:{result:[{symbol, response:[{meta:{regularMarketPrice}}]}]}}
     const results = json?.spark?.result || [];
@@ -2038,8 +2050,30 @@ async function fetchYahooPricesBatch(tickers) {
 
 // 개별 종목 시세 조회 - 원티커 우선 → 실패시 .KS↔.KQ 교차상장 fallback
 async function fetchYahooPrice(ticker) {
+  // Yahoo는 KOSPI 종목의 .KQ 별칭으로 동일 코드의 별개 MUTUALFUND 데이터를 반환함
+  // (예: 457190.KQ → ISU(KOSPI EQUITY)가 아닌 0P0001QX6Q 펀드 38,850원).
+  // 검증 없이 그대로 저장하면 -65~70% 차이로 anomaly 필터를 우회해 silent corruption 발생.
+  // 이중 방어: (1) instrumentType이 MUTUALFUND이면 거부, (2) KR 종목은 일일 ±30% 상한선이므로
+  // chartPreviousClose 대비 35%를 초과하면 거부 (proxy 캐시 오류, 글리치 차단).
   function extractPrice(json) {
-    return json?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
+    const meta = json?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    if (meta.instrumentType === 'MUTUALFUND') {
+      console.warn('[fetchYahooPrice] MUTUALFUND ghost rejected:', meta.symbol, 'price', meta.regularMarketPrice);
+      return null;
+    }
+    const price = meta.regularMarketPrice;
+    if (!price || price <= 0) return null;
+    const sym = meta.symbol;
+    const prev = meta.chartPreviousClose || meta.previousClose;
+    if (prev && prev > 0 && sym && /\.(KS|KQ)$/.test(sym)) {
+      const pct = Math.abs(price - prev) / prev;
+      if (pct > 0.35) {
+        console.warn('[fetchYahooPrice] anomalous chart price for', sym, ':', prev, '→', price, '(' + (pct*100).toFixed(1) + '%) — rejected');
+        return null;
+      }
+    }
+    return price;
   }
 
   function tryTicker(t) {
@@ -2056,20 +2090,23 @@ async function fetchYahooPrice(ticker) {
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(u1), 15000)
         .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
         .then(w => ok(extractPrice(JSON.parse(w.contents))))
-    ]).catch(e => { console.warn('[fetchYahooPrice]', t, 'all proxies failed'); return null; });
+    ]).catch(e => { console.warn('[fetchYahooPrice]', t, 'all proxies failed or returned ghost'); return null; });
   }
 
   // 1차: 원래 티커
   let price = await tryTicker(ticker);
   if (price && price > 0) return price;
 
-  // 2차: 교차상장 fallback (.KS↔.KQ)
+  // 2차: 교차상장 fallback (.KS↔.KQ) - MUTUALFUND ghost는 extractPrice에서 거부됨
   let alt = null;
   if (ticker.endsWith('.KS')) alt = ticker.replace('.KS', '.KQ');
   else if (ticker.endsWith('.KQ')) alt = ticker.replace('.KQ', '.KS');
   if (alt) {
     price = await tryTicker(alt);
-    if (price && price > 0) return price;
+    if (price && price > 0) {
+      console.warn('[fetchYahooPrice] cross-listing fallback used:', ticker, '→', alt, '=', price);
+      return price;
+    }
   }
   return null;
 }
@@ -2080,6 +2117,7 @@ let githubDebounceTimer = null;
 
 // GitHub에서 자동으로 데이터 불러오기 (앱 시작 시)
 async function autoSyncFromGitHub() {
+  if (settings.githubToken && settings.syncPaused) return false;
   const repo = settings.githubRepo || 'surfer-investor/kr-capital';
   const path = settings.githubPath || 'data/portfolio.json';
 
@@ -2136,6 +2174,7 @@ async function autoSyncFromGitHub() {
 }
 
 function debouncedSaveToGitHub() {
+  if (settings.syncPaused) return;
   clearTimeout(githubDebounceTimer);
   githubDebounceTimer = setTimeout(() => saveToGitHub(), 3000);
 }
@@ -2292,6 +2331,7 @@ function saveGitHubSettings() {
   settings.githubToken = document.getElementById('githubTokenInput').value.trim();
   settings.githubRepo = document.getElementById('githubRepoInput').value.trim();
   settings.githubPath = document.getElementById('githubPathInput').value.trim() || 'data/portfolio.json';
+  settings.syncPaused = false;
   saveSettings();
   githubSha = null;
 
@@ -2306,16 +2346,25 @@ function saveGitHubSettings() {
 }
 
 function disconnectGitHub() {
-  settings.githubToken = '';
-  githubSha = null;
+  if (!settings.githubToken) {
+    updateSyncStatus('', '미연결');
+    closeGitHubModal();
+    return;
+  }
+  settings.syncPaused = true;
+  clearTimeout(githubDebounceTimer);
   saveSettings();
-  updateSyncStatus('', '미연결');
+  updateSyncStatus('', '일시 중지');
   closeGitHubModal();
 }
 
 function initSyncStatus() {
   if (settings.githubToken) {
-    updateSyncStatus('connected', '연결됨');
+    if (settings.syncPaused) {
+      updateSyncStatus('', '일시 중지');
+    } else {
+      updateSyncStatus('connected', '연결됨');
+    }
   }
 }
 
