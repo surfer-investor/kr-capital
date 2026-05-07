@@ -45,16 +45,6 @@
           "risk": ""
         },
         {
-          "name": "블랙야크아이앤씨",
-          "ticker": "478560.KQ",
-          "market": "KR",
-          "quantity": 20,
-          "avgPrice": 3685,
-          "currentPrice": 3380,
-          "investmentThesis": "",
-          "risk": ""
-        },
-        {
           "name": "이수스페셜티케미컬",
           "ticker": "457190.KS",
           "market": "KR",
@@ -68,8 +58,8 @@
           "name": "DL이앤씨",
           "ticker": "375500.KS",
           "market": "KR",
-          "quantity": 8,
-          "avgPrice": 93299.75,
+          "quantity": 11,
+          "avgPrice": 93327.09,
           "currentPrice": 97900,
           "investmentThesis": "",
           "risk": ""
@@ -81,16 +71,6 @@
           "quantity": 11,
           "avgPrice": 55800,
           "currentPrice": 57400,
-          "investmentThesis": "",
-          "risk": ""
-        },
-        {
-          "name": "HD현대중공업",
-          "ticker": "329180.KS",
-          "market": "KR",
-          "quantity": 1,
-          "avgPrice": 662000,
-          "currentPrice": 693000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -121,6 +101,16 @@
           "quantity": 1,
           "avgPrice": 17770,
           "currentPrice": 40200,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "미래에셋증권",
+          "ticker": "006800.KS",
+          "market": "KR",
+          "quantity": 8,
+          "avgPrice": 83600.0,
+          "currentPrice": 84500,
           "investmentThesis": "",
           "risk": ""
         }
@@ -171,6 +161,76 @@
           "price": 91400,
           "reason": "호실적 발표 후 주가 하락 (Buy the Dip)",
           "market": "KR"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "블랙야크아이앤씨",
+          "ticker": "478560.KQ",
+          "market": "KR",
+          "type": "sell",
+          "quantity": 10,
+          "price": 3370,
+          "reason": "전량 매도 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "블랙야크아이앤씨",
+          "ticker": "478560.KQ",
+          "market": "KR",
+          "type": "sell",
+          "quantity": 10,
+          "price": 3390,
+          "reason": "전량 매도 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "DL이앤씨",
+          "ticker": "375500.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 3,
+          "price": 93400,
+          "reason": "추가 매수 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "미래에셋증권",
+          "ticker": "006800.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 2,
+          "price": 84500,
+          "reason": "추세추종 돌파 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "미래에셋증권",
+          "ticker": "006800.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 3,
+          "price": 84400,
+          "reason": "추세추종 돌파 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "미래에셋증권",
+          "ticker": "006800.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 3,
+          "price": 82200,
+          "reason": "추세추종 돌파 (사후 기록)"
+        },
+        {
+          "date": "2026-05-06",
+          "name": "HD현대중공업",
+          "ticker": "329180.KS",
+          "market": "KR",
+          "type": "sell",
+          "quantity": 1,
+          "price": 652000,
+          "reason": "차익 실현 (사후 기록)"
         }
       ],
       "capitalFlows": [
@@ -188,7 +248,7 @@
       "operationNote": "+310,828원으로 마무리했습니다. 월초에 '추세추종 돌파 전략'+ 필승 픽(이차전지) 로 접근한 상신이디피(+238905원)이 펀드의 수익을 이끌었습니다.\n첫 펀드 보고서이기 때문에 전반적인 제 매매의 운용을 봤을 때, 5월 전까지는 추세추종 돌파 매매를 하였습니다.\n추세추종 돌파 매매: \"시장 판단 (2유닛)\n내 매매 성공/실패 (3유닛)\n1유닛= 시드/20\"",
       "reflection": "",
       "nextMonthPlan": "",
-      "cashKRW": 421784,
+      "cashKRW": 192384,
       "cashUSD": 429.55
     }
   },
