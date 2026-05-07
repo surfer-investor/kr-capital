@@ -18,7 +18,7 @@
           "name": "Venture Global",
           "ticker": "VG",
           "market": "US",
-          "quantity": 24,
+          "quantity": 12,
           "avgPrice": 13.15,
           "currentPrice": 12,
           "investmentThesis": "",
@@ -28,8 +28,8 @@
           "name": "Applied Optoelectronics",
           "ticker": "AAOI",
           "market": "US",
-          "quantity": 2,
-          "avgPrice": 175.0,
+          "quantity": 1,
+          "avgPrice": 175,
           "currentPrice": 178.54,
           "investmentThesis": "",
           "risk": ""
@@ -38,7 +38,7 @@
           "name": "LLYX",
           "ticker": "LLYX",
           "market": "US",
-          "quantity": 26,
+          "quantity": 13,
           "avgPrice": 18.02,
           "currentPrice": 19.35,
           "investmentThesis": "",
@@ -48,8 +48,8 @@
           "name": "이수스페셜티케미컬",
           "ticker": "457190.KS",
           "market": "KR",
-          "quantity": 6,
-          "avgPrice": 120425.0,
+          "quantity": 3,
+          "avgPrice": 120425,
           "currentPrice": 117700,
           "investmentThesis": "",
           "risk": ""
@@ -58,8 +58,8 @@
           "name": "DL이앤씨",
           "ticker": "375500.KS",
           "market": "KR",
-          "quantity": 22,
-          "avgPrice": 93327.045,
+          "quantity": 11,
+          "avgPrice": 93327.09,
           "currentPrice": 100300,
           "investmentThesis": "",
           "risk": ""
@@ -68,8 +68,8 @@
           "name": "GS피앤엘",
           "ticker": "499790.KS",
           "market": "KR",
-          "quantity": 22,
-          "avgPrice": 55800.0,
+          "quantity": 11,
+          "avgPrice": 55800,
           "currentPrice": 57400,
           "investmentThesis": "",
           "risk": ""
@@ -78,8 +78,8 @@
           "name": "KODEX 로봇액티브",
           "ticker": "445290.KS",
           "market": "KR",
-          "quantity": 28,
-          "avgPrice": 34996.0,
+          "quantity": 14,
+          "avgPrice": 34996,
           "currentPrice": 36340,
           "investmentThesis": "",
           "risk": ""
@@ -88,8 +88,8 @@
           "name": "KODEX 머니마켓액티브",
           "ticker": "488770.KS",
           "market": "KR",
-          "quantity": 10,
-          "avgPrice": 104112.0,
+          "quantity": 5,
+          "avgPrice": 104112,
           "currentPrice": 104280,
           "investmentThesis": "",
           "risk": ""
@@ -98,8 +98,8 @@
           "name": "제이에스링크",
           "ticker": "127120.KQ",
           "market": "KR",
-          "quantity": 2,
-          "avgPrice": 17770.0,
+          "quantity": 1,
+          "avgPrice": 17770,
           "currentPrice": 40200,
           "investmentThesis": "",
           "risk": ""
@@ -108,8 +108,8 @@
           "name": "미래에셋증권",
           "ticker": "006800.KS",
           "market": "KR",
-          "quantity": 16,
-          "avgPrice": 83600.0,
+          "quantity": 8,
+          "avgPrice": 83600,
           "currentPrice": 84500,
           "investmentThesis": "",
           "risk": ""
@@ -231,106 +231,6 @@
           "quantity": 1,
           "price": 652000,
           "reason": "차익 실현 (사후 기록)"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "Venture Global",
-          "ticker": "VG",
-          "market": "US",
-          "type": "buy",
-          "quantity": 12,
-          "price": 13.15,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "Applied Optoelectronics",
-          "ticker": "AAOI",
-          "market": "US",
-          "type": "buy",
-          "quantity": 1,
-          "price": 175.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "LLYX",
-          "ticker": "LLYX",
-          "market": "US",
-          "type": "buy",
-          "quantity": 13,
-          "price": 18.02,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "이수스페셜티케미컬",
-          "ticker": "457190.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 3,
-          "price": 120425.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "DL이앤씨",
-          "ticker": "375500.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 11,
-          "price": 93327.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "GS피앤엘",
-          "ticker": "499790.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 11,
-          "price": 55800.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "KODEX 로봇액티브",
-          "ticker": "445290.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 14,
-          "price": 34996.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "KODEX 머니마켓액티브",
-          "ticker": "488770.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 5,
-          "price": 104112.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "제이에스링크",
-          "ticker": "127120.KQ",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 1,
-          "price": 17770.0,
-          "reason": "필승 써글"
-        },
-        {
-          "date": "2026-05-07",
-          "name": "미래에셋증권",
-          "ticker": "006800.KS",
-          "market": "KR",
-          "type": "buy",
-          "quantity": 8,
-          "price": 83600.0,
-          "reason": "필승 써글"
         }
       ],
       "capitalFlows": [
@@ -348,9 +248,9 @@
       "operationNote": "+310,828원으로 마무리했습니다. 월초에 '추세추종 돌파 전략'+ 필승 픽(이차전지) 로 접근한 상신이디피(+238905원)이 펀드의 수익을 이끌었습니다.\n첫 펀드 보고서이기 때문에 전반적인 제 매매의 운용을 봤을 때, 5월 전까지는 추세추종 돌파 매매를 하였습니다.\n추세추종 돌파 매매: \"시장 판단 (2유닛)\n내 매매 성공/실패 (3유닛)\n1유닛= 시드/20\"",
       "reflection": "",
       "nextMonthPlan": "",
-      "cashKRW": -3506362.0,
-      "cashUSD": -137.51
+      "cashKRW": 192384,
+      "cashUSD": 429.55
     }
   },
-  "lastModified": 1778154863125
+  "lastModified": 1778161538792
 }
