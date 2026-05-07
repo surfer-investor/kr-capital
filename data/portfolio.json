@@ -9,7 +9,7 @@
         },
         {
           "date": "2026-05-07",
-          "totalAsset": 5448660,
+          "totalAsset": 5449610,
           "note": "자동 업데이트"
         }
       ],
@@ -262,5 +262,5 @@
       "cashUSD": 749.88
     }
   },
-  "lastModified": 1778164263135
+  "lastModified": 1778164326498
 }
