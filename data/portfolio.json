@@ -9,8 +9,8 @@
         },
         {
           "date": "2026-05-07",
-          "totalAsset": 5506536,
-          "note": "자동 업데이트"
+          "totalAsset": 5486236,
+          "note": "자동 업데이트 (자동 보정)"
         }
       ],
       "holdings": [
@@ -109,7 +109,7 @@
           "ticker": "006800.KS",
           "market": "KR",
           "quantity": 8,
-          "avgPrice": 83600.0,
+          "avgPrice": 83600,
           "currentPrice": 84500,
           "investmentThesis": "",
           "risk": ""
@@ -252,5 +252,5 @@
       "cashUSD": 429.55
     }
   },
-  "lastModified": 1778151898969
+  "lastModified": 1778152770860
 }
