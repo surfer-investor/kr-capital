@@ -48,8 +48,8 @@
           "name": "이수스페셜티케미컬",
           "ticker": "457190.KS",
           "market": "KR",
-          "quantity": 3,
-          "avgPrice": 120425,
+          "quantity": 6,
+          "avgPrice": 120425.0,
           "currentPrice": 117700,
           "investmentThesis": "",
           "risk": ""
@@ -261,6 +261,16 @@
           "quantity": 13,
           "price": 18.02,
           "reason": "필승 써글"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "이수스페셜티케미컬",
+          "ticker": "457190.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 3,
+          "price": 120425.0,
+          "reason": "필승 써글"
         }
       ],
       "capitalFlows": [
@@ -278,7 +288,7 @@
       "operationNote": "+310,828원으로 마무리했습니다. 월초에 '추세추종 돌파 전략'+ 필승 픽(이차전지) 로 접근한 상신이디피(+238905원)이 펀드의 수익을 이끌었습니다.\n첫 펀드 보고서이기 때문에 전반적인 제 매매의 운용을 봤을 때, 5월 전까지는 추세추종 돌파 매매를 하였습니다.\n추세추종 돌파 매매: \"시장 판단 (2유닛)\n내 매매 성공/실패 (3유닛)\n1유닛= 시드/20\"",
       "reflection": "",
       "nextMonthPlan": "",
-      "cashKRW": 192384,
+      "cashKRW": -168891.0,
       "cashUSD": -137.51
     }
   },
