@@ -14,7 +14,7 @@
         },
         {
           "date": "2026-05-07",
-          "totalAsset": 4980131,
+          "totalAsset": 4986536,
           "note": "자동 업데이트"
         }
       ],
@@ -65,7 +65,7 @@
           "market": "KR",
           "quantity": 3,
           "avgPrice": 120425,
-          "currentPrice": 118000,
+          "currentPrice": 118500,
           "investmentThesis": "",
           "risk": ""
         },
@@ -85,7 +85,7 @@
           "market": "KR",
           "quantity": 11,
           "avgPrice": 55800,
-          "currentPrice": 57700,
+          "currentPrice": 58100,
           "investmentThesis": "",
           "risk": ""
         },
@@ -95,7 +95,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 662000,
-          "currentPrice": 680500,
+          "currentPrice": 680000,
           "investmentThesis": "",
           "risk": ""
         },
@@ -105,7 +105,7 @@
           "market": "KR",
           "quantity": 14,
           "avgPrice": 34996,
-          "currentPrice": 36140,
+          "currentPrice": 36220,
           "investmentThesis": "",
           "risk": ""
         },
@@ -115,7 +115,7 @@
           "market": "KR",
           "quantity": 5,
           "avgPrice": 104112,
-          "currentPrice": 104280,
+          "currentPrice": 104277,
           "investmentThesis": "",
           "risk": ""
         },
@@ -125,7 +125,7 @@
           "market": "KR",
           "quantity": 1,
           "avgPrice": 17770,
-          "currentPrice": 40300,
+          "currentPrice": 40200,
           "investmentThesis": "",
           "risk": ""
         }
@@ -197,5 +197,5 @@
       "cashUSD": 429.55
     }
   },
-  "lastModified": 1778129454006
+  "lastModified": 1778129469568
 }
