@@ -68,8 +68,8 @@
           "name": "GS피앤엘",
           "ticker": "499790.KS",
           "market": "KR",
-          "quantity": 11,
-          "avgPrice": 55800,
+          "quantity": 22,
+          "avgPrice": 55800.0,
           "currentPrice": 57400,
           "investmentThesis": "",
           "risk": ""
@@ -281,6 +281,16 @@
           "quantity": 11,
           "price": 93327.0,
           "reason": "필승 써글"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "GS피앤엘",
+          "ticker": "499790.KS",
+          "market": "KR",
+          "type": "buy",
+          "quantity": 11,
+          "price": 55800.0,
+          "reason": "필승 써글"
         }
       ],
       "capitalFlows": [
@@ -298,7 +308,7 @@
       "operationNote": "+310,828원으로 마무리했습니다. 월초에 '추세추종 돌파 전략'+ 필승 픽(이차전지) 로 접근한 상신이디피(+238905원)이 펀드의 수익을 이끌었습니다.\n첫 펀드 보고서이기 때문에 전반적인 제 매매의 운용을 봤을 때, 5월 전까지는 추세추종 돌파 매매를 하였습니다.\n추세추종 돌파 매매: \"시장 판단 (2유닛)\n내 매매 성공/실패 (3유닛)\n1유닛= 시드/20\"",
       "reflection": "",
       "nextMonthPlan": "",
-      "cashKRW": -1195488.0,
+      "cashKRW": -1809288.0,
       "cashUSD": -137.51
     }
   },
