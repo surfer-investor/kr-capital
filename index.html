@@ -768,11 +768,22 @@ textarea {
         </div>
         <button class="btn btn-primary btn-sm" onclick="addTrade()">기록</button>
       </div>
+      <div id="monthlyRealizedPnL" style="margin:8px 0 12px 0;padding:10px 12px;background:var(--surface2);border-radius:8px"></div>
       <table>
         <thead>
-          <tr><th>날짜</th><th>종목</th><th>시장</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="no-print" style="width:50px"></th></tr>
+          <tr><th>날짜</th><th>종목</th><th>시장</th><th>구분</th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th><th class="num">실현손익</th><th class="no-print" style="width:50px"></th></tr>
         </thead>
         <tbody id="tradesBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">종목별 누적 실현손익</div>
+      <table>
+        <thead>
+          <tr><th>종목</th><th>시장</th><th class="num">누적 실현손익</th><th class="num">매도 횟수</th></tr>
+        </thead>
+        <tbody id="realizedPnLByTickerBody"></tbody>
       </table>
     </div>
 
@@ -908,17 +919,139 @@ textarea {
 // ============ DATA ============
 const STORAGE_KEY = 'kr_capital_data';
 const SETTINGS_KEY = 'kr_capital_settings';
-let data = { months: {} };
+const BACKUP_KEY = 'kr_capital_data_backup_v1';
+const SCHEMA_VERSION = 2;
+let data = { schemaVersion: SCHEMA_VERSION, holdings: [], trades: [], capitalFlows: [], assetHistory: [], cashKRW: 0, cashUSD: 0, months: {} };
 let settings = { fxRate: 1380, theme: 'dark', githubToken: '', githubRepo: 'surfer-investor/kr-capital', githubPath: 'data/portfolio.json' };
 let currentMonth = '';
 
+// v1 (per-month holdings/trades/cash) → v2 (global) 마이그레이션.
+// 1) 가장 최근 월의 holdings/cash를 글로벌로 채택.
+// 2) 모든 월의 trades/capitalFlows/assetHistory를 concat → 글로벌 + currency 필드 부여.
+// 3) months 객체에서 텍스트 필드만 남김.
+// 4) 매도 trades는 시간순 재생으로 avgPriceAtSell/realizedPnL 백필 (실패 시 null).
+function migrateToV2(oldData) {
+  if (!oldData || typeof oldData !== 'object') return { schemaVersion: SCHEMA_VERSION, holdings: [], trades: [], capitalFlows: [], assetHistory: [], cashKRW: 0, cashUSD: 0, months: {} };
+  if (oldData.schemaVersion === SCHEMA_VERSION) return oldData;
+
+  // 백업 (롤백용)
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(oldData)); } catch(e) { console.warn('[migrate] backup save failed', e); }
+
+  const months = oldData.months || {};
+  const monthKeys = Object.keys(months).sort(); // 오름차순
+  const newData = { schemaVersion: SCHEMA_VERSION, holdings: [], trades: [], capitalFlows: [], assetHistory: [], cashKRW: 0, cashUSD: 0, months: {} };
+
+  // 1) 가장 최근 월에서 글로벌 holdings/cash 채택 (최근부터 역순으로 보면서 비어있지 않은 첫 데이터).
+  for (let i = monthKeys.length - 1; i >= 0; i--) {
+    const mk = monthKeys[i];
+    const m = months[mk];
+    if (!m) continue;
+    if (newData.holdings.length === 0 && Array.isArray(m.holdings) && m.holdings.length > 0) {
+      newData.holdings = m.holdings.map(h => ({
+        ...h,
+        currency: h.currency || (h.market === 'US' ? 'USD' : 'KRW'),
+      }));
+    }
+    // legacy cash 필드 정규화
+    let cKRW = m.cashKRW;
+    let cUSD = m.cashUSD;
+    if (cKRW === undefined && m.cash !== undefined) { cKRW = m.cash; cUSD = 0; }
+    if (newData.cashKRW === 0 && (cKRW || cUSD)) {
+      newData.cashKRW = cKRW || 0;
+      newData.cashUSD = cUSD || 0;
+    }
+    if (newData.holdings.length > 0 && (newData.cashKRW || newData.cashUSD)) break;
+  }
+
+  // 2) trades/capitalFlows/assetHistory concat
+  for (const mk of monthKeys) {
+    const m = months[mk];
+    if (!m) continue;
+    if (Array.isArray(m.trades)) {
+      for (const t of m.trades) {
+        newData.trades.push({
+          ...t,
+          currency: t.currency || (t.market === 'US' ? 'USD' : 'KRW'),
+        });
+      }
+    }
+    if (Array.isArray(m.capitalFlows)) {
+      for (const f of m.capitalFlows) {
+        newData.capitalFlows.push({ ...f, currency: f.currency || 'KRW' });
+      }
+    }
+    if (Array.isArray(m.assetHistory)) {
+      for (const a of m.assetHistory) newData.assetHistory.push({ ...a });
+    }
+    // 텍스트 필드만 보존
+    newData.months[mk] = {
+      operationNote: m.operationNote || '',
+      reflection: m.reflection || '',
+      nextMonthPlan: m.nextMonthPlan || '',
+    };
+  }
+
+  // 3) 매도 trades 백필: 시간순 재생으로 avgPriceAtSell, realizedPnL 추정
+  newData.trades.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const replay = {}; // ticker|name → {qty, avgPrice}
+  for (const t of newData.trades) {
+    const key = t.ticker || t.name;
+    if (!key) continue;
+    if (t.type === 'buy') {
+      const e = replay[key] || { quantity: 0, avgPrice: 0 };
+      const oldCost = e.quantity * e.avgPrice;
+      const newCost = t.quantity * t.price;
+      e.quantity += t.quantity;
+      e.avgPrice = e.quantity > 0 ? (oldCost + newCost) / e.quantity : 0;
+      replay[key] = e;
+    } else if (t.type === 'sell') {
+      const e = replay[key];
+      if (e && e.quantity > 0 && e.avgPrice > 0) {
+        if (t.avgPriceAtSell == null) t.avgPriceAtSell = e.avgPrice;
+        if (t.realizedPnL == null) t.realizedPnL = (t.price - t.avgPriceAtSell) * t.quantity;
+        e.quantity -= t.quantity;
+        if (e.quantity <= 0) delete replay[key];
+      } else {
+        // 데이터 결손: holdings 없는데 매도 (직접 추가/삭제 케이스). null로 마킹.
+        if (t.avgPriceAtSell === undefined) t.avgPriceAtSell = null;
+        if (t.realizedPnL === undefined) t.realizedPnL = null;
+      }
+    }
+  }
+
+  // 4) lastModified 보존
+  if (oldData.lastModified) newData.lastModified = oldData.lastModified;
+
+  console.log('[migrate v1→v2] holdings:', newData.holdings.length, 'trades:', newData.trades.length, 'flows:', newData.capitalFlows.length, 'assetHistory:', newData.assetHistory.length, 'months:', Object.keys(newData.months).length);
+  return newData;
+}
+
 function loadData() {
-  try { data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || { months: {} }; } catch(e) { data = { months: {} }; }
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch(e) { raw = null; }
+  if (!raw) {
+    data = { schemaVersion: SCHEMA_VERSION, holdings: [], trades: [], capitalFlows: [], assetHistory: [], cashKRW: 0, cashUSD: 0, months: {} };
+  } else if (raw.schemaVersion === SCHEMA_VERSION) {
+    data = raw;
+    // 누락 필드 보정
+    if (!Array.isArray(data.holdings)) data.holdings = [];
+    if (!Array.isArray(data.trades)) data.trades = [];
+    if (!Array.isArray(data.capitalFlows)) data.capitalFlows = [];
+    if (!Array.isArray(data.assetHistory)) data.assetHistory = [];
+    if (typeof data.cashKRW !== 'number') data.cashKRW = 0;
+    if (typeof data.cashUSD !== 'number') data.cashUSD = 0;
+    if (!data.months || typeof data.months !== 'object') data.months = {};
+  } else {
+    data = migrateToV2(raw);
+    // 마이그레이션 결과를 즉시 저장 (다음 로드 시 재마이그레이션 방지)
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.error('[migrate] save failed', e); }
+  }
   try { settings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { fxRate: 1380, theme: 'dark' }; } catch(e) {}
 }
 
 function saveData() {
   data.lastModified = Date.now();
+  data.schemaVersion = SCHEMA_VERSION;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   if (settings.githubToken) debouncedSaveToGitHub();
 }
@@ -926,9 +1059,66 @@ function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(sett
 
 function getMonth(key) {
   if (!data.months[key]) {
-    data.months[key] = { assetHistory:[], holdings:[], trades:[], capitalFlows:[], cashKRW:0, cashUSD:0, operationNote:'', reflection:'', nextMonthPlan:'' };
+    data.months[key] = { operationNote: '', reflection: '', nextMonthPlan: '' };
   }
-  return data.months[key];
+  const m = data.months[key];
+  if (m.operationNote === undefined) m.operationNote = '';
+  if (m.reflection === undefined) m.reflection = '';
+  if (m.nextMonthPlan === undefined) m.nextMonthPlan = '';
+  return m;
+}
+
+// ============ 월별 필터 헬퍼 ============
+function tradesForMonth(key) { return data.trades.filter(t => (t.date || '').startsWith(key)); }
+function flowsForMonth(key) { return data.capitalFlows.filter(f => (f.date || '').startsWith(key)); }
+function assetHistoryForMonth(key) { return data.assetHistory.filter(h => (h.date || '').startsWith(key)); }
+
+function realizedPnLForMonth(key) {
+  const ts = tradesForMonth(key).filter(t => t.type === 'sell' && t.realizedPnL != null);
+  return {
+    KRW: ts.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'KRW').reduce((s, t) => s + (t.realizedPnL || 0), 0),
+    USD: ts.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'USD').reduce((s, t) => s + (t.realizedPnL || 0), 0),
+    countKRW: ts.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'KRW').length,
+    countUSD: ts.filter(t => (t.currency || (t.market === 'US' ? 'USD' : 'KRW')) === 'USD').length,
+  };
+}
+
+function realizedPnLByTicker() {
+  const map = {};
+  for (const t of data.trades) {
+    if (t.type !== 'sell' || t.realizedPnL == null) continue;
+    const k = t.ticker || t.name;
+    if (!k) continue;
+    const cur = t.currency || (t.market === 'US' ? 'USD' : 'KRW');
+    if (!map[k]) map[k] = { name: t.name, ticker: t.ticker, market: t.market, currency: cur, total: 0, count: 0 };
+    map[k].total += t.realizedPnL;
+    map[k].count += 1;
+  }
+  return Object.values(map).sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+}
+
+// 통화별 금액 포매팅 (큰 금액용: USD: $1,234.56 / KRW: 만/억 축약)
+function fmtMoney(amount, currency) {
+  if (amount == null || isNaN(amount)) return '-';
+  if (currency === 'USD') {
+    const sign = amount < 0 ? '-' : '';
+    const abs = Math.abs(amount);
+    return sign + '$' + abs.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+  const abs = Math.abs(amount);
+  if (abs >= 100000000) return (amount / 100000000).toFixed(1) + '억';
+  if (abs >= 10000) return Math.round(amount / 10000).toLocaleString('ko-KR') + '만';
+  return Math.round(amount).toLocaleString('ko-KR');
+}
+function fmtMoneySign(amount, currency) {
+  if (amount == null || isNaN(amount)) return '-';
+  return (amount >= 0 ? '+' : '') + fmtMoney(amount, currency);
+}
+// 단가용 포매팅 (축약 없이 정확한 값. USD: $200.50, KRW: 77,500)
+function fmtPrice(price, currency) {
+  if (price == null || isNaN(price)) return '-';
+  if (currency === 'USD') return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Math.round(price).toLocaleString('ko-KR');
 }
 
 function getCurrentMonthKey() {
@@ -982,18 +1172,17 @@ function switchPage(name) {
 // ============ INIT ============
 // 외부 agent가 GitHub에 직접 push한 잘못된 totalAsset(US 환율 미반영) 자가 치유
 // 오늘자 assetHistory만 재계산. 과거 항목은 그대로 둠(과거 시세를 알 수 없으므로).
-function sanitizeTodayAssetHistory(m) {
-  if (!m || !Array.isArray(m.assetHistory)) return false;
+function sanitizeTodayAssetHistory() {
   const today = new Date().toISOString().split('T')[0];
-  const idx = m.assetHistory.findIndex(a => a.date === today);
+  const idx = data.assetHistory.findIndex(a => a.date === today);
   if (idx === -1) return false;
-  const computed = Math.round(m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m));
-  const stored = Math.round(m.assetHistory[idx].totalAsset || 0);
+  const computed = Math.round(data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW());
+  const stored = Math.round(data.assetHistory[idx].totalAsset || 0);
   // 1,000원 이상 차이 나면 외부 agent 버그로 판단해 자동 보정
   if (Math.abs(stored - computed) > 1000) {
     console.warn('[자가치유] 오늘자 총자산 보정:', stored, '→', computed, '(차이', stored-computed+'원)');
-    m.assetHistory[idx].totalAsset = computed;
-    m.assetHistory[idx].note = (m.assetHistory[idx].note || '') + ' (자동 보정)';
+    data.assetHistory[idx].totalAsset = computed;
+    data.assetHistory[idx].note = (data.assetHistory[idx].note || '') + ' (자동 보정)';
     return true;
   }
   return false;
@@ -1015,7 +1204,7 @@ async function init() {
   updateMarketLabel();
 
   // GitHub에서 받은 오늘자 자산 스냅샷 검증·보정
-  if (sanitizeTodayAssetHistory(getMonth(currentMonth))) saveData();
+  if (sanitizeTodayAssetHistory()) saveData();
 
   render();
 
@@ -1077,38 +1266,34 @@ function fmtSign(n) { return n == null || isNaN(n) ? '-' : (n >= 0 ? '+' : '') +
 
 // ============ RENDER ============
 function render() {
-  const m = getMonth(currentMonth);
-  renderSummary(m);
-  renderAssetChart(m);
-  renderDonut(m);
-  renderStockPie(m);
-  renderHoldings(m);
-  renderTrades(m);
-  renderFlows(m);
-  renderAssetHistory(m);
-  renderNotes(m);
-  renderPortfolioAnalysis(m);
-  // 기존 cash → cashKRW 마이그레이션
-  if (m.cash !== undefined && m.cashKRW === undefined) {
-    m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash;
-  }
-  document.getElementById('cashKRWInput').value = m.cashKRW || '';
-  document.getElementById('cashUSDInput').value = m.cashUSD || '';
+  renderSummary();
+  renderAssetChart();
+  renderDonut();
+  renderStockPie();
+  renderHoldings();
+  renderTrades();
+  renderFlows();
+  renderAssetHistory();
+  renderNotes();
+  renderPortfolioAnalysis();
+  renderRealizedPnLByTicker();
+  document.getElementById('cashKRWInput').value = data.cashKRW || '';
+  document.getElementById('cashUSDInput').value = data.cashUSD || '';
   const cashTotalEl = document.getElementById('cashTotal');
   if (cashTotalEl) {
-    const usdInKrw = (m.cashUSD || 0) * getFxRate();
-    cashTotalEl.textContent = (m.cashUSD ? `= ${fmtWon(getCashKRW(m))} (USD ${fmtWon(usdInKrw)})` : '');
+    const usdInKrw = (data.cashUSD || 0) * getFxRate();
+    cashTotalEl.textContent = (data.cashUSD ? `= ${fmtWon(getCashKRW())} (USD ${fmtWon(usdInKrw)})` : '');
   }
 }
 
-function renderSummary(m) {
-  const holdingsVal = m.holdings.reduce((s, h) => s + evalKRW(h), 0);
-  const holdingsCost = m.holdings.reduce((s, h) => s + costKRW(h), 0);
-  const totalAsset = holdingsVal + getCashKRW(m);
+function renderSummary() {
+  const holdingsVal = data.holdings.reduce((s, h) => s + evalKRW(h), 0);
+  const holdingsCost = data.holdings.reduce((s, h) => s + costKRW(h), 0);
+  const totalAsset = holdingsVal + getCashKRW();
 
   document.getElementById('totalAsset').textContent = fmtWon(totalAsset);
 
-  // PnL
+  // PnL (미실현)
   const pnl = holdingsVal - holdingsCost;
   const pnlPct = holdingsCost ? (pnl / holdingsCost * 100) : 0;
   document.getElementById('totalPnl').textContent = fmtSign(pnl);
@@ -1116,12 +1301,11 @@ function renderSummary(m) {
   document.getElementById('totalPnlPct').textContent = holdingsCost ? fmtPct(pnlPct) : '';
   document.getElementById('totalPnlPct').className = 'summary-sub ' + (pnl >= 0 ? 'positive' : 'negative');
 
-  // Previous month
-  const months = Object.keys(data.months).sort();
-  const idx = months.indexOf(currentMonth);
-  if (idx > 0) {
-    const prev = getMonth(months[idx - 1]);
-    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(prev);
+  // 이전 월: assetHistory에서 currentMonth 시작 이전의 마지막 스냅샷 사용
+  const monthStart = currentMonth + '-01';
+  const prevSnapshots = data.assetHistory.filter(a => a.date && a.date < monthStart).sort((a, b) => a.date.localeCompare(b.date));
+  if (prevSnapshots.length) {
+    const prevVal = prevSnapshots[prevSnapshots.length - 1].totalAsset || 0;
     const diff = totalAsset - prevVal;
     const pct = prevVal ? ((diff / prevVal) * 100) : 0;
     document.getElementById('monthChange').textContent = fmtSign(diff);
@@ -1134,19 +1318,20 @@ function renderSummary(m) {
     document.getElementById('monthChangePct').textContent = '';
   }
 
-  const flowTotal = m.capitalFlows.reduce((s, f) => s + f.amount, 0);
+  const flowTotal = flowsForMonth(currentMonth).reduce((s, f) => s + f.amount, 0);
   document.getElementById('capitalFlow').textContent = fmtSign(flowTotal);
   document.getElementById('capitalFlow').className = 'summary-value ' + (flowTotal >= 0 ? 'positive' : 'negative');
 }
 
-function renderAssetChart(m) {
+function renderAssetChart() {
   const container = document.getElementById('assetChartContainer');
-  if (!m.assetHistory.length) {
+  const monthHistory = assetHistoryForMonth(currentMonth);
+  if (!monthHistory.length) {
     container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:13px">일별 자산 기록을 추가하면 그래프가 표시됩니다</div>';
     return;
   }
 
-  const sorted = [...m.assetHistory].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...monthHistory].sort((a, b) => a.date.localeCompare(b.date));
   const values = sorted.map(d => d.totalAsset);
   const min = Math.min(...values) * 0.95;
   const max = Math.max(...values) * 1.05;
@@ -1161,7 +1346,7 @@ function renderAssetChart(m) {
     return { x, y, ...d };
   });
 
-  const flowDates = new Set(m.capitalFlows.map(f => f.date));
+  const flowDates = new Set(flowsForMonth(currentMonth).map(f => f.date));
 
   let pathD = points.map((p, i) => `${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
   let areaD = pathD + ` L${points[points.length-1].x},${PT+ch} L${points[0].x},${PT+ch} Z`;
@@ -1192,12 +1377,12 @@ function renderAssetChart(m) {
     ${yLabels}${xLabels}<path d="${areaD}" fill="url(#areaGrad)"/><path d="${pathD}" fill="none" stroke="var(--accent2)" stroke-width="2"/>${dots}${markers}</svg>`;
 }
 
-function renderDonut(m) {
+function renderDonut() {
   const container = document.getElementById('donutContainer');
-  const krVal = m.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
-  const usVal = m.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
-  const cashKRWVal = m.cashKRW || (m.cash || 0);
-  const cashUSDVal = (m.cashUSD || 0) * getFxRate();
+  const krVal = data.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
+  const usVal = data.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
+  const cashKRWVal = data.cashKRW || 0;
+  const cashUSDVal = (data.cashUSD || 0) * getFxRate();
   const cashVal = cashKRWVal + cashUSDVal;
   const total = krVal + usVal + cashVal;
 
@@ -1230,14 +1415,14 @@ function renderDonut(m) {
 }
 
 // ============ STOCK PIE CHART ============
-function renderStockPie(m) {
+function renderStockPie() {
   const container = document.getElementById('stockPieContainer');
-  if (!m.holdings.length) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px">보유 종목 없음</div>'; return; }
+  if (!data.holdings.length) { container.innerHTML = '<div style="color:var(--text-dim);font-size:13px">보유 종목 없음</div>'; return; }
 
   // 비중 높은 순 정렬, 현금 포함
   const PIE_COLORS = ['#6c5ce7','#a29bfe','#74b9ff','#00cec9','#55efc4','#ffeaa7','#fdcb6e','#fab1a0','#ff7675','#e17055','#d63031','#b2bec3'];
-  const items = m.holdings.map(h => ({ label: h.name, value: evalKRW(h) })).filter(s => s.value > 0);
-  const cashVal = getCashKRW(m);
+  const items = data.holdings.map(h => ({ label: h.name, value: evalKRW(h) })).filter(s => s.value > 0);
+  const cashVal = getCashKRW();
   if (cashVal > 0) items.push({ label: '현금', value: cashVal });
   items.sort((a, b) => b.value - a.value);
   items.forEach((s, i) => { s.color = PIE_COLORS[i % PIE_COLORS.length]; });
@@ -1265,13 +1450,13 @@ function renderStockPie(m) {
 }
 
 // ============ HOLDINGS ============
-function renderHoldings(m) {
+function renderHoldings() {
   const tbody = document.getElementById('holdingsBody');
-  if (!m.holdings.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
+  if (!data.holdings.length) { tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--text-dim)">종목을 추가해주세요</td></tr>'; return; }
 
 
   const fx = getFxRate();
-  tbody.innerHTML = m.holdings.map((h, i) => {
+  tbody.innerHTML = data.holdings.map((h, i) => {
     const ev = evalKRW(h);
     const co = costKRW(h);
     const pnl = co ? ((ev - co) / co * 100) : 0;
@@ -1296,28 +1481,26 @@ function renderHoldings(m) {
 }
 
 function addHolding() {
-  const m = getMonth(currentMonth);
   const name = document.getElementById('hName').value.trim();
   if (!name) return alert('종목명을 입력해주세요');
   const market = document.getElementById('hMarket').value;
+  const currency = market === 'US' ? 'USD' : 'KRW';
   const quantity = Number(document.getElementById('hQty').value) || 0;
   const avgPrice = Number(document.getElementById('hAvgPrice').value) || 0;
   const cost = quantity * avgPrice;
 
   // 매수 시 현금 자동 차감
   if (cost > 0) {
-    // 기존 cash → cashKRW 마이그레이션
-    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
     if (market === 'US') {
-      m.cashUSD = (m.cashUSD || 0) - cost;
+      data.cashUSD = (data.cashUSD || 0) - cost;
     } else {
-      m.cashKRW = (m.cashKRW || 0) - cost;
+      data.cashKRW = (data.cashKRW || 0) - cost;
     }
   }
 
-  m.holdings.push({
+  data.holdings.push({
     name, ticker: document.getElementById('hTicker').value.trim(),
-    market, quantity, avgPrice,
+    market, currency, quantity, avgPrice,
     currentPrice: Number(document.getElementById('hCurPrice').value) || 0,
     investmentThesis: '', risk: ''
   });
@@ -1326,44 +1509,37 @@ function addHolding() {
   document.getElementById('hSearch').value = '';
 }
 
-function updateHolding(idx, field, value) { getMonth(currentMonth).holdings[idx][field] = value; saveData(); }
+function updateHolding(idx, field, value) { data.holdings[idx][field] = value; saveData(); }
 
 function removeHolding(idx) {
   if (!confirm('삭제하시겠습니까?')) return;
-  getMonth(currentMonth).holdings.splice(idx, 1); saveData(); render();
+  data.holdings.splice(idx, 1); saveData(); render();
 }
 
 // ============ CASH ============
-function getCashKRW(m) {
-  // 기존 데이터 호환: 옛날 cash 필드가 있으면 cashKRW로 마이그레이션
-  if (m.cash !== undefined && m.cashKRW === undefined) {
-    m.cashKRW = m.cash;
-    m.cashUSD = 0;
-    delete m.cash;
-  }
-  return (m.cashKRW || 0) + (m.cashUSD || 0) * getFxRate();
+// getCashKRW() returns total cash in KRW (USD converted at current FX).
+function getCashKRW() {
+  return (data.cashKRW || 0) + (data.cashUSD || 0) * getFxRate();
 }
 
 function updateCash() {
-  const m = getMonth(currentMonth);
-  m.cashKRW = Number(document.getElementById('cashKRWInput').value) || 0;
-  m.cashUSD = Number(document.getElementById('cashUSDInput').value) || 0;
-  if (m.cash !== undefined) delete m.cash;
+  data.cashKRW = Number(document.getElementById('cashKRWInput').value) || 0;
+  data.cashUSD = Number(document.getElementById('cashUSDInput').value) || 0;
   saveData(); render();
 }
 
 // ============ PORTFOLIO ANALYSIS ============
-function renderPortfolioAnalysis(m) {
+function renderPortfolioAnalysis() {
   const el = document.getElementById('portfolioAnalysis');
   if (!el) return;
-  if (!m.holdings.length) { el.innerHTML = '<span style="color:var(--text-dim)">보유 종목을 추가하면 분석이 표시됩니다</span>'; return; }
+  if (!data.holdings.length) { el.innerHTML = '<span style="color:var(--text-dim)">보유 종목을 추가하면 분석이 표시됩니다</span>'; return; }
 
   const fx = getFxRate();
-  const krVal = m.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
-  const usVal = m.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
+  const krVal = data.holdings.filter(h => h.market === 'KR').reduce((s, h) => s + evalKRW(h), 0);
+  const usVal = data.holdings.filter(h => h.market === 'US').reduce((s, h) => s + evalKRW(h), 0);
   const holdingsVal = krVal + usVal;
-  const holdingsCost = m.holdings.reduce((s, h) => s + costKRW(h), 0);
-  const cashVal = getCashKRW(m);
+  const holdingsCost = data.holdings.reduce((s, h) => s + costKRW(h), 0);
+  const cashVal = getCashKRW();
   const totalAsset = holdingsVal + cashVal;
   const totalPnl = holdingsVal - holdingsCost;
   const totalPnlPct = holdingsCost ? (totalPnl / holdingsCost * 100) : 0;
@@ -1372,7 +1548,7 @@ function renderPortfolioAnalysis(m) {
   const usPct = totalAsset ? (usVal / totalAsset * 100).toFixed(1) : 0;
   const cashPct = totalAsset ? (cashVal / totalAsset * 100).toFixed(1) : 0;
 
-  let stockWeights = m.holdings.map(h => {
+  let stockWeights = data.holdings.map(h => {
     const ev = evalKRW(h);
     const pct = totalAsset ? (ev / totalAsset * 100).toFixed(1) : 0;
     return `<span style="margin-right:12px">${h.name} <strong>${pct}%</strong></span>`;
@@ -1392,127 +1568,193 @@ function renderPortfolioAnalysis(m) {
 }
 
 // ============ TRADES ============
-function renderTrades(m) {
+function renderTrades() {
   const tbody = document.getElementById('tradesBody');
-  if (!m.trades.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
-  tbody.innerHTML = [...m.trades].sort((a,b) => b.date.localeCompare(a.date)).map((t, i) => {
-    return `<tr><td>${t.date}</td><td>${t.name}${t.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+t.ticker+'</span>' : ''}</td><td>${t.market||'-'}</td><td>${t.type==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
-    <td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td>
-    <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeTrade(${i})">삭제</button></td></tr>`;
+  const monthTrades = tradesForMonth(currentMonth);
+  // 월별 실현손익 요약
+  const summaryEl = document.getElementById('monthlyRealizedPnL');
+  if (summaryEl) {
+    const r = realizedPnLForMonth(currentMonth);
+    if (r.countKRW + r.countUSD === 0) {
+      summaryEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px">이달 실현손익 없음</span>';
+    } else {
+      const lines = [];
+      if (r.countKRW > 0) lines.push(`<span>한국: <strong class="${r.KRW>=0?'positive':'negative'}">${fmtMoneySign(r.KRW,'KRW')}</strong> <span style="color:var(--text-dim);font-size:11px">(${r.countKRW}건)</span></span>`);
+      if (r.countUSD > 0) lines.push(`<span>미국: <strong class="${r.USD>=0?'positive':'negative'}">${fmtMoneySign(r.USD,'USD')}</strong> <span style="color:var(--text-dim);font-size:11px">(${r.countUSD}건)</span></span>`);
+      summaryEl.innerHTML = '<span style="color:var(--text-dim);font-size:12px;margin-right:8px">이달 실현손익:</span>' + lines.join('<span style="margin:0 12px;color:var(--text-dim)">·</span>');
+    }
+  }
+
+  if (!monthTrades.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-dim)">매매 기록이 없습니다</td></tr>'; return; }
+  // sorted by date desc; 각 항목에 data.trades 내 원본 index 부여 (삭제용)
+  const sorted = monthTrades
+    .map(t => ({ t, origIdx: data.trades.indexOf(t) }))
+    .sort((a, b) => (b.t.date || '').localeCompare(a.t.date || ''));
+
+  tbody.innerHTML = sorted.map(({ t, origIdx }) => {
+    const cur = t.currency || (t.market === 'US' ? 'USD' : 'KRW');
+    const priceCell = fmtPrice(t.price, cur);
+    const amount = t.quantity * t.price;
+    const amountCell = fmtMoney(amount, cur);
+    let pnlCell = '';
+    if (t.type === 'sell') {
+      if (t.realizedPnL == null) {
+        pnlCell = `<td class="num" style="color:var(--text-dim)">—</td>`;
+      } else {
+        const cls = t.realizedPnL >= 0 ? 'positive' : 'negative';
+        pnlCell = `<td class="num ${cls}">${fmtMoneySign(t.realizedPnL, cur)}</td>`;
+      }
+    } else {
+      pnlCell = `<td class="num" style="color:var(--text-dim)">·</td>`;
+    }
+    const tickerLine = t.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+t.ticker+'</span>' : '';
+    return `<tr>
+      <td>${t.date}</td>
+      <td>${t.name}${tickerLine}</td>
+      <td>${t.market || '-'}</td>
+      <td>${t.type==='buy'?'<span class="positive">매수</span>':'<span class="negative">매도</span>'}</td>
+      <td class="num">${fmt(t.quantity)}</td>
+      <td class="num">${priceCell}</td>
+      <td class="num">${amountCell}</td>
+      ${pnlCell}
+      <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeTrade(${origIdx})">삭제</button></td>
+    </tr>`;
   }).join('');
 }
 
 function addTrade() {
-  const m = getMonth(currentMonth);
   const name = document.getElementById('tName').value.trim();
   if (!name) return alert('종목명을 입력해주세요');
   const ticker = document.getElementById('tTicker').value.trim();
   const market = document.getElementById('tMarket').value;
+  const currency = market === 'US' ? 'USD' : 'KRW';
   const type = document.getElementById('tType').value;
   const quantity = Number(document.getElementById('tQty').value) || 0;
   const price = Number(document.getElementById('tPrice').value) || 0;
   const date = document.getElementById('tDate').value;
   const totalCost = quantity * price;
 
-  // 기존 cash → cashKRW 마이그레이션
-  if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
-
   if (type === 'buy') {
     // 매수: holdings에 추가/업데이트, 현금 차감
-    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    const existing = data.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
     if (existing) {
       const oldCost = existing.quantity * existing.avgPrice;
       existing.quantity += quantity;
       existing.avgPrice = existing.quantity > 0 ? (oldCost + totalCost) / existing.quantity : 0;
+      if (!existing.currency) existing.currency = currency;
     } else {
-      m.holdings.push({ name, ticker, market, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+      data.holdings.push({ name, ticker, market, currency, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
     }
-    if (market === 'US') { m.cashUSD = (m.cashUSD || 0) - totalCost; }
-    else { m.cashKRW = (m.cashKRW || 0) - totalCost; }
+    if (market === 'US') { data.cashUSD = (data.cashUSD || 0) - totalCost; }
+    else { data.cashKRW = (data.cashKRW || 0) - totalCost; }
+    data.trades.push({ date, name, ticker, market, currency, type, quantity, price });
   } else {
-    // 매도: holdings에서 수량 차감, 현금 증가
-    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
-    if (existing) {
+    // 매도: 매도 시점 평균단가 스냅샷 + 실현손익 계산
+    const existing = data.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    let avgPriceAtSell = null, realizedPnL = null;
+    if (existing && existing.avgPrice > 0) {
+      avgPriceAtSell = existing.avgPrice;
+      realizedPnL = (price - avgPriceAtSell) * quantity;
       existing.quantity -= quantity;
-      if (existing.quantity <= 0) {
-        m.holdings.splice(m.holdings.indexOf(existing), 1);
-      }
+      if (existing.quantity <= 0) data.holdings.splice(data.holdings.indexOf(existing), 1);
+    } else {
+      console.warn('[addTrade sell] holdings에 없는 종목 매도 — avgPrice 알 수 없음:', name, ticker);
     }
-    if (market === 'US') { m.cashUSD = (m.cashUSD || 0) + totalCost; }
-    else { m.cashKRW = (m.cashKRW || 0) + totalCost; }
+    if (market === 'US') { data.cashUSD = (data.cashUSD || 0) + totalCost; }
+    else { data.cashKRW = (data.cashKRW || 0) + totalCost; }
+    data.trades.push({ date, name, ticker, market, currency, type, quantity, price, avgPriceAtSell, realizedPnL });
   }
 
-  m.trades.push({ date, name, ticker, market, type, quantity, price });
   saveData(); render();
   ['tName','tTicker','tQty','tPrice'].forEach(id => document.getElementById(id).value = '');
 }
 
-function removeTrade(idx) {
-  const m = getMonth(currentMonth);
-  const sorted = [...m.trades].sort((a,b) => b.date.localeCompare(a.date));
-  m.trades.splice(m.trades.indexOf(sorted[idx]), 1); saveData(); render();
+function removeTrade(origIdx) {
+  if (origIdx < 0 || origIdx >= data.trades.length) return;
+  data.trades.splice(origIdx, 1); saveData(); render();
 }
 
 // ============ CAPITAL FLOWS ============
-function renderFlows(m) {
+function renderFlows() {
   const tbody = document.getElementById('flowsBody');
-  if (!m.capitalFlows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">출자/회수 내역이 없습니다</td></tr>'; return; }
-  tbody.innerHTML = [...m.capitalFlows].sort((a,b) => b.date.localeCompare(a.date)).map((f, i) => {
-    return `<tr><td>${f.date}</td><td class="num ${f.amount>=0?'positive':'negative'}">${fmtSign(f.amount)}</td><td>${f.reason}</td>
-    <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeFlow(${i})">삭제</button></td></tr>`;
+  const monthFlows = flowsForMonth(currentMonth);
+  if (!monthFlows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">출자/회수 내역이 없습니다</td></tr>'; return; }
+  const sorted = monthFlows
+    .map(f => ({ f, origIdx: data.capitalFlows.indexOf(f) }))
+    .sort((a, b) => (b.f.date || '').localeCompare(a.f.date || ''));
+  tbody.innerHTML = sorted.map(({ f, origIdx }) => {
+    return `<tr><td>${f.date}</td><td class="num ${f.amount>=0?'positive':'negative'}">${fmtSign(f.amount)}</td><td>${f.reason||''}</td>
+    <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeFlow(${origIdx})">삭제</button></td></tr>`;
   }).join('');
 }
 
 function addCapitalFlow() {
-  const m = getMonth(currentMonth);
   const amount = Number(document.getElementById('cfAmount').value);
   if (!amount) return alert('금액을 입력해주세요');
-  m.capitalFlows.push({ date: document.getElementById('cfDate').value, amount, reason: document.getElementById('cfReason').value.trim() });
+  data.capitalFlows.push({ date: document.getElementById('cfDate').value, amount, currency: 'KRW', reason: document.getElementById('cfReason').value.trim() });
   saveData(); render();
   ['cfAmount','cfReason'].forEach(id => document.getElementById(id).value = '');
 }
 
-function removeFlow(idx) {
-  const m = getMonth(currentMonth);
-  const sorted = [...m.capitalFlows].sort((a,b) => b.date.localeCompare(a.date));
-  m.capitalFlows.splice(m.capitalFlows.indexOf(sorted[idx]), 1); saveData(); render();
+function removeFlow(origIdx) {
+  if (origIdx < 0 || origIdx >= data.capitalFlows.length) return;
+  data.capitalFlows.splice(origIdx, 1); saveData(); render();
 }
 
 // ============ ASSET HISTORY ============
-function renderAssetHistory(m) {
+function renderAssetHistory() {
   const tbody = document.getElementById('assetHistoryBody');
-  if (!m.assetHistory.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">일별 자산 기록이 없습니다</td></tr>'; return; }
-  tbody.innerHTML = [...m.assetHistory].sort((a,b) => b.date.localeCompare(a.date)).map((h, i) => {
+  const monthHist = assetHistoryForMonth(currentMonth);
+  if (!monthHist.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">일별 자산 기록이 없습니다</td></tr>'; return; }
+  const sorted = monthHist
+    .map(h => ({ h, origIdx: data.assetHistory.indexOf(h) }))
+    .sort((a, b) => (b.h.date || '').localeCompare(a.h.date || ''));
+  tbody.innerHTML = sorted.map(({ h, origIdx }) => {
     return `<tr><td>${h.date}</td><td class="num">${fmtWon(h.totalAsset)}</td><td>${h.note||''}</td>
-    <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeAssetHistory(${i})">삭제</button></td></tr>`;
+    <td class="no-print"><button class="btn btn-danger btn-sm" onclick="removeAssetHistory(${origIdx})">삭제</button></td></tr>`;
   }).join('');
 }
 
 function autoCalcAsset() {
-  const m = getMonth(currentMonth);
-  const total = m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m);
+  const total = data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW();
   document.getElementById('ahAmount').value = Math.round(total);
 }
 
 function addAssetHistory() {
-  const m = getMonth(currentMonth);
   const date = document.getElementById('ahDate').value;
   const amount = Number(document.getElementById('ahAmount').value);
   if (!date || !amount) return alert('날짜와 금액을 입력해주세요');
-  m.assetHistory = m.assetHistory.filter(h => h.date !== date);
-  m.assetHistory.push({ date, totalAsset: amount, note: document.getElementById('ahNote').value.trim() });
+  data.assetHistory = data.assetHistory.filter(h => h.date !== date);
+  data.assetHistory.push({ date, totalAsset: amount, note: document.getElementById('ahNote').value.trim() });
   saveData(); render();
   document.getElementById('ahNote').value = '';
 }
 
-function removeAssetHistory(idx) {
-  const m = getMonth(currentMonth);
-  const sorted = [...m.assetHistory].sort((a,b) => b.date.localeCompare(a.date));
-  m.assetHistory.splice(m.assetHistory.indexOf(sorted[idx]), 1); saveData(); render();
+function removeAssetHistory(origIdx) {
+  if (origIdx < 0 || origIdx >= data.assetHistory.length) return;
+  data.assetHistory.splice(origIdx, 1); saveData(); render();
+}
+
+// ============ REALIZED P&L BY TICKER ============
+function renderRealizedPnLByTicker() {
+  const el = document.getElementById('realizedPnLByTickerBody');
+  if (!el) return;
+  const rows = realizedPnLByTicker();
+  if (!rows.length) { el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">실현손익 기록 없음</td></tr>'; return; }
+  el.innerHTML = rows.map(r => {
+    const cls = r.total >= 0 ? 'positive' : 'negative';
+    return `<tr>
+      <td><strong>${r.name}</strong>${r.ticker ? '<br><span style="color:var(--text-dim);font-size:11px">'+r.ticker+'</span>' : ''}</td>
+      <td>${r.market || '-'}</td>
+      <td class="num ${cls}">${fmtMoneySign(r.total, r.currency)}</td>
+      <td class="num">${r.count}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ============ NOTES ============
-function renderNotes(m) {
+function renderNotes() {
+  const m = getMonth(currentMonth);
   // 사용자가 타이핑 중인 textarea는 덮어쓰지 않음 (focus 보호)
   const active = document.activeElement;
   const op = document.getElementById('operationNote');
@@ -1541,48 +1783,54 @@ function saveNotes() {
 // ============ REPORT ============
 function printReport() {
   const m = getMonth(currentMonth);
+  const monthTrades = tradesForMonth(currentMonth);
+  const monthFlows = flowsForMonth(currentMonth);
+
   document.getElementById('reportPeriod').textContent = fmtMonthLabel(currentMonth);
   document.getElementById('rptFxRate').textContent = fmt(getFxRate());
 
-  const holdingsVal = m.holdings.reduce((s, h) => s + evalKRW(h), 0);
-  const totalAsset = holdingsVal + getCashKRW(m);
+  const holdingsVal = data.holdings.reduce((s, h) => s + evalKRW(h), 0);
+  const totalAsset = holdingsVal + getCashKRW();
   document.getElementById('rptTotalAsset').textContent = fmtWon(totalAsset);
 
-  const months = Object.keys(data.months).sort();
-  const idx = months.indexOf(currentMonth);
-  if (idx > 0) {
-    const prev = getMonth(months[idx - 1]);
-    const prevVal = prev.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(prev);
+  // 이전 월: assetHistory에서 currentMonth 시작 이전의 마지막 스냅샷
+  const monthStart = currentMonth + '-01';
+  const prevSnapshots = data.assetHistory.filter(a => a.date && a.date < monthStart).sort((a, b) => a.date.localeCompare(b.date));
+  if (prevSnapshots.length) {
+    const prevVal = prevSnapshots[prevSnapshots.length - 1].totalAsset || 0;
     const diff = totalAsset - prevVal;
     document.getElementById('rptMonthChange').textContent = fmtSign(diff);
     document.getElementById('rptMonthChange').className = 'summary-value ' + (diff >= 0 ? 'positive' : 'negative');
     document.getElementById('rptMonthChangePct').textContent = fmtPct(prevVal ? diff/prevVal*100 : 0);
   } else { document.getElementById('rptMonthChange').textContent = '-'; document.getElementById('rptMonthChangePct').textContent = ''; }
 
-  document.getElementById('rptCapitalFlow').textContent = fmtSign(m.capitalFlows.reduce((s,f)=>s+f.amount,0));
+  document.getElementById('rptCapitalFlow').textContent = fmtSign(monthFlows.reduce((s,f)=>s+f.amount,0));
 
   document.getElementById('rptAssetChart').innerHTML = document.getElementById('assetChartContainer').innerHTML;
 
-  document.getElementById('rptHoldings').innerHTML = m.holdings.map(h => {
+  document.getElementById('rptHoldings').innerHTML = data.holdings.map(h => {
     const ev = evalKRW(h), co = costKRW(h), pnl = co ? ((ev-co)/co*100) : 0;
     const pd = h.market==='US' ? `$${fmt(h.avgPrice)}` : fmt(h.avgPrice);
     const cd = h.market==='US' ? `$${fmt(h.currentPrice)}` : fmt(h.currentPrice);
     return `<tr><td>${h.name}</td><td>${h.market}</td><td class="num">${fmt(h.quantity)}</td><td class="num">${pd}</td><td class="num">${cd}</td><td class="num">${fmtWon(ev)}</td><td class="num ${pnl>=0?'positive':'negative'}">${fmtPct(pnl)}</td><td>${h.investmentThesis||'-'}</td><td>${h.risk||'-'}</td></tr>`;
   }).join('');
 
-  const krVal = m.holdings.filter(h=>h.market==='KR').reduce((s,h)=>s+evalKRW(h),0);
-  const usVal = m.holdings.filter(h=>h.market==='US').reduce((s,h)=>s+evalKRW(h),0);
-  const cashVal = getCashKRW(m);
+  const krVal = data.holdings.filter(h=>h.market==='KR').reduce((s,h)=>s+evalKRW(h),0);
+  const usVal = data.holdings.filter(h=>h.market==='US').reduce((s,h)=>s+evalKRW(h),0);
+  const cashVal = getCashKRW();
   const allT = krVal+usVal+cashVal;
-  const cashDetail = (m.cashUSD && m.cashKRW) ? `현금(KRW): ${fmtWon(m.cashKRW||0)} / 현금(USD): $${fmt(m.cashUSD||0)}` : `현금: ${fmtWon(cashVal)}`;
+  const cashDetail = (data.cashUSD && data.cashKRW) ? `현금(KRW): ${fmtWon(data.cashKRW||0)} / 현금(USD): $${fmt(data.cashUSD||0)}` : `현금: ${fmtWon(cashVal)}`;
   document.getElementById('rptAllocation').innerHTML = allT ? `한국주식: ${fmtWon(krVal)} (${(krVal/allT*100).toFixed(1)}%) / 미국주식: ${fmtWon(usVal)} (${(usVal/allT*100).toFixed(1)}%) / ${cashDetail} (${(cashVal/allT*100).toFixed(1)}%)` : '-';
 
-  document.getElementById('rptTrades').innerHTML = m.trades.length ?
-    [...m.trades].sort((a,b)=>b.date.localeCompare(a.date)).map(t => `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'매수':'매도'}</td><td class="num">${fmt(t.quantity)}</td><td class="num">${fmt(t.price)}</td><td class="num">${fmtWon(t.quantity*t.price)}</td></tr>`).join('')
+  document.getElementById('rptTrades').innerHTML = monthTrades.length ?
+    [...monthTrades].sort((a,b)=>b.date.localeCompare(a.date)).map(t => {
+      const cur = t.currency || (t.market === 'US' ? 'USD' : 'KRW');
+      return `<tr><td>${t.date}</td><td>${t.name}</td><td>${t.type==='buy'?'매수':'매도'}</td><td class="num">${fmt(t.quantity)}</td><td class="num">${fmtPrice(t.price, cur)}</td><td class="num">${fmtMoney(t.quantity*t.price, cur)}</td></tr>`;
+    }).join('')
     : '<tr><td colspan="6" style="text-align:center">-</td></tr>';
 
-  document.getElementById('rptFlows').innerHTML = m.capitalFlows.length ?
-    m.capitalFlows.map(f => `<tr><td>${f.date}</td><td class="num">${fmtSign(f.amount)}</td><td>${f.reason}</td></tr>`).join('')
+  document.getElementById('rptFlows').innerHTML = monthFlows.length ?
+    monthFlows.map(f => `<tr><td>${f.date}</td><td class="num">${fmtSign(f.amount)}</td><td>${f.reason||''}</td></tr>`).join('')
     : '<tr><td colspan="3" style="text-align:center">-</td></tr>';
 
   document.getElementById('rptOps').textContent = m.operationNote || '-';
@@ -1608,9 +1856,12 @@ function importJSON(event) {
   reader.onload = function(e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!imported.months) throw new Error('Invalid format');
+      if (!imported || typeof imported !== 'object') throw new Error('Invalid format');
       if (!confirm('기존 데이터를 덮어씌웁니다. 계속할까요?')) return;
-      data = imported; saveData(); populateMonthSelect();
+      // 임포트된 데이터가 v1이면 마이그레이션
+      data = (imported.schemaVersion === SCHEMA_VERSION) ? imported : migrateToV2(imported);
+      saveData();
+      populateMonthSelect();
       const months = Object.keys(data.months).sort().reverse();
       if (months.length) { currentMonth = months[0]; document.getElementById('monthSelect').value = currentMonth; }
       render(); alert('복원 완료!');
@@ -1647,8 +1898,7 @@ async function fetchPricesWithConcurrency(tickers, status, label, concurrency = 
 }
 
 async function updatePrices() {
-  const m = getMonth(currentMonth);
-  const holdingsWithTicker = m.holdings.filter(h => h.ticker);
+  const holdingsWithTicker = data.holdings.filter(h => h.ticker);
   if (!holdingsWithTicker.length) { alert('티커가 입력된 종목이 없습니다.\n예: 005930.KS (한국), NVDA (미국)'); return; }
 
   const btn = document.getElementById('updatePricesBtn');
@@ -1727,9 +1977,9 @@ async function updatePrices() {
   // 시세 업데이트 후 오늘 자산 기록 자동 갱신
   if (updated > 0) {
     const today = new Date().toISOString().split('T')[0];
-    const totalAsset = Math.round(m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m));
-    m.assetHistory = m.assetHistory.filter(h => h.date !== today);
-    m.assetHistory.push({ date: today, totalAsset, note: '자동 업데이트' });
+    const totalAsset = Math.round(data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW());
+    data.assetHistory = data.assetHistory.filter(h => h.date !== today);
+    data.assetHistory.push({ date: today, totalAsset, note: '자동 업데이트' });
   }
 
   saveData();
@@ -1751,7 +2001,6 @@ async function updatePrices() {
 }
 
 async function retryFailed(tickers) {
-  const m = getMonth(currentMonth);
   const status = document.getElementById('priceUpdateStatus');
   status.innerHTML = '실패 종목 재시도 중...';
   status.style.color = 'var(--text-dim)';
@@ -1759,7 +2008,7 @@ async function retryFailed(tickers) {
   let updated = 0, failed = 0, errors = [];
   for (let i = 0; i < tickers.length; i++) {
     const ticker = tickers[i];
-    const h = m.holdings.find(h => h.ticker === ticker);
+    const h = data.holdings.find(h => h.ticker === ticker);
     if (!h) continue;
     status.innerHTML = h.name + ' 재시도 (' + (i+1) + '/' + tickers.length + ')';
     const price = await fetchYahooPrice(h.ticker);
@@ -1842,7 +2091,7 @@ async function searchStocks(query) {
         fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(w => ok(JSON.parse(w.contents))),
-        fetchWithTimeout('https://corsproxy.io/' + url1, 7000)
+        fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url1), 8000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(j => ok(j))
       ]);
@@ -1931,7 +2180,7 @@ async function searchTradeStocks(query) {
         fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(w => ok(JSON.parse(w.contents))),
-        fetchWithTimeout('https://corsproxy.io/' + url1, 7000)
+        fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url1), 8000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); })
           .then(j => ok(j))
       ]);
@@ -2032,7 +2281,7 @@ async function fetchYahooPricesBatch(tickers) {
 
   function validate(m) { if (!Object.keys(m).length) throw new Error('empty'); return m; }
 
-  // 병렬 레이스: 먼저 성공하는 프록시 사용 (corsproxy.io는 Cloudflare로 막혀 제거)
+  // 병렬 레이스: 먼저 성공하는 프록시 사용 (allorigins 다운에 대비해 codetabs 보험)
   try {
     return await Promise.any([
       fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(sparkUrl1), 15000)
@@ -2043,7 +2292,13 @@ async function fetchYahooPricesBatch(tickers) {
         .then(j => validate(extractFromSpark(j))),
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(sparkUrl1), 18000)
         .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-        .then(w => validate(extractFromSpark(JSON.parse(w.contents))))
+        .then(w => validate(extractFromSpark(JSON.parse(w.contents)))),
+      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(sparkUrl1), 18000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(j => validate(extractFromSpark(j))),
+      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(sparkUrl2), 18000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(j => validate(extractFromSpark(j)))
     ]);
   } catch(e) { console.warn('[fetchYahooPricesBatch] all proxies failed, falling back to individual'); return {}; }
 }
@@ -2089,7 +2344,13 @@ async function fetchYahooPrice(ticker) {
         .then(j => ok(extractPrice(j))),
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(u1), 15000)
         .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-        .then(w => ok(extractPrice(JSON.parse(w.contents))))
+        .then(w => ok(extractPrice(JSON.parse(w.contents)))),
+      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u1), 15000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(j => ok(extractPrice(j))),
+      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u2), 15000)
+        .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+        .then(j => ok(extractPrice(j)))
     ]).catch(e => { console.warn('[fetchYahooPrice]', t, 'all proxies failed or returned ghost'); return null; });
   }
 
@@ -2134,16 +2395,17 @@ async function autoSyncFromGitHub() {
         githubSha = fileData.sha;
         const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
         const imported = JSON.parse(decoded);
-        if (imported.months) {
+        if (imported && imported.months) {
           // 로컬이 더 최신이면 덮어쓰지 않음 (아직 push되지 않은 변경분 보호)
           const localTs = data?.lastModified || 0;
           const remoteTs = imported?.lastModified || 0;
-          if (localTs > remoteTs && Object.keys(data.months || {}).length > 0) {
+          const localHasContent = (data.holdings?.length || 0) > 0 || (data.trades?.length || 0) > 0 || Object.keys(data.months || {}).length > 0;
+          if (localTs > remoteTs && localHasContent) {
             console.log('Local data is newer, skipping GitHub overwrite');
             if (settings.githubToken) debouncedSaveToGitHub();
             return false;
           }
-          data = imported;
+          data = (imported.schemaVersion === SCHEMA_VERSION) ? imported : migrateToV2(imported);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           return true;
         }
@@ -2154,14 +2416,15 @@ async function autoSyncFromGitHub() {
       res = await fetch(rawUrl);
       if (res.ok) {
         const imported = await res.json();
-        if (imported.months) {
+        if (imported && imported.months) {
           const localTs = data?.lastModified || 0;
           const remoteTs = imported?.lastModified || 0;
-          if (localTs > remoteTs && Object.keys(data.months || {}).length > 0) {
+          const localHasContent = (data.holdings?.length || 0) > 0 || (data.trades?.length || 0) > 0 || Object.keys(data.months || {}).length > 0;
+          if (localTs > remoteTs && localHasContent) {
             console.log('Local data is newer, skipping GitHub overwrite');
             return false;
           }
-          data = imported;
+          data = (imported.schemaVersion === SCHEMA_VERSION) ? imported : migrateToV2(imported);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           return true;
         }
@@ -2268,14 +2531,14 @@ async function loadFromGitHub() {
     const decoded = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))));
     const imported = JSON.parse(decoded);
 
-    if (!imported.months) throw new Error('Invalid format');
+    if (!imported || !imported.months) throw new Error('Invalid format');
     if (!confirm('GitHub 데이터로 현재 데이터를 덮어씌웁니다. 계속할까요?')) {
       btn.disabled = false;
       statusEl.textContent = '';
       return;
     }
 
-    data = imported;
+    data = (imported.schemaVersion === SCHEMA_VERSION) ? imported : migrateToV2(imported);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     populateMonthSelect();
     const months = Object.keys(data.months).sort().reverse();
@@ -2369,83 +2632,125 @@ function initSyncStatus() {
 }
 
 // ============ AGENT API ============
+// v2.0.0: 글로벌 데이터 모델 (월별 분리 제거). 모든 trade/holding에 currency 명시.
+//
+// 통화 규칙:
+// - market='KR' ↔ currency='KRW'
+// - market='US' ↔ currency='USD'
+// - 둘 중 하나만 넘기면 자동 derive. 둘 다 넘기는데 불일치 시 throw.
+// - market 누락 시 throw (default 없음 — 예전엔 KR 기본이었으나 silent corruption 유발).
+function _resolveCurrency({ market, currency }) {
+  if (!market) throw new Error("market is required ('KR' or 'US')");
+  if (market !== 'KR' && market !== 'US') throw new Error(`invalid market: ${market} (must be 'KR' or 'US')`);
+  const expected = market === 'US' ? 'USD' : 'KRW';
+  if (currency && currency !== expected) {
+    throw new Error(`market/currency mismatch: market=${market} expects currency=${expected}, got ${currency}`);
+  }
+  return expected;
+}
+
 window.KR_CAPITAL_API = {
-  getVersion() { return '1.0.0'; },
+  getVersion() { return '2.0.0'; },
 
   getPortfolio() {
-    const m = getMonth(currentMonth);
-    return { month: currentMonth, holdings: m.holdings, trades: m.trades, cashKRW: m.cashKRW || 0, cashUSD: m.cashUSD || 0, fxRate: getFxRate(), totalAsset: m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m) };
+    return {
+      schemaVersion: SCHEMA_VERSION,
+      month: currentMonth,
+      holdings: data.holdings,
+      trades: data.trades,
+      capitalFlows: data.capitalFlows,
+      cashKRW: data.cashKRW || 0,
+      cashUSD: data.cashUSD || 0,
+      fxRate: getFxRate(),
+      totalAssetKRW: data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(),
+    };
   },
 
-  getHoldings() { return getMonth(currentMonth).holdings; },
+  getHoldings() { return data.holdings; },
 
   getCash() {
-    const m = getMonth(currentMonth);
-    return { krw: m.cashKRW || 0, usd: m.cashUSD || 0, totalKRW: getCashKRW(m) };
+    return { krw: data.cashKRW || 0, usd: data.cashUSD || 0, totalKRW: getCashKRW() };
   },
 
   getTotalAsset() {
-    const m = getMonth(currentMonth);
-    return m.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW(m);
+    return data.holdings.reduce((s, h) => s + evalKRW(h), 0) + getCashKRW();
   },
 
-  recordBuy({ name, ticker, market, quantity, price, date }) {
+  // 월별 실현손익 (currentMonth 기본, key 인자로 지정 가능)
+  getRealizedPnL(monthKey) {
+    return realizedPnLForMonth(monthKey || currentMonth);
+  },
+  // 종목별 누적 실현손익
+  getRealizedPnLByTicker() { return realizedPnLByTicker(); },
+
+  recordBuy({ name, ticker, market, currency, quantity, price, date }) {
     if (!name) throw new Error('name is required');
-    const m = getMonth(currentMonth);
-    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
-    const mkt = market || 'KR';
+    if (!quantity || quantity <= 0) throw new Error('quantity must be > 0');
+    if (!price || price <= 0) throw new Error('price must be > 0');
+    const cur = _resolveCurrency({ market, currency });
     const totalCost = quantity * price;
-    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    const existing = data.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
     if (existing) {
+      if (existing.market !== market) throw new Error(`market mismatch: existing holding "${name}" is ${existing.market}, request is ${market}`);
       const oldCost = existing.quantity * existing.avgPrice;
       existing.quantity += quantity;
       existing.avgPrice = existing.quantity > 0 ? (oldCost + totalCost) / existing.quantity : 0;
+      if (!existing.currency) existing.currency = cur;
     } else {
-      m.holdings.push({ name, ticker: ticker || '', market: mkt, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+      data.holdings.push({ name, ticker: ticker || '', market, currency: cur, quantity, avgPrice: price, currentPrice: price, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
     }
-    if (mkt === 'US') { m.cashUSD = (m.cashUSD || 0) - totalCost; } else { m.cashKRW = (m.cashKRW || 0) - totalCost; }
-    m.trades.push({ date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market: mkt, type: 'buy', quantity, price });
+    if (market === 'US') { data.cashUSD = (data.cashUSD || 0) - totalCost; }
+    else { data.cashKRW = (data.cashKRW || 0) - totalCost; }
+    const trade = { date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market, currency: cur, type: 'buy', quantity, price };
+    data.trades.push(trade);
     saveData(); render();
-    return { success: true, action: 'buy', name, quantity, price };
+    return { success: true, action: 'buy', name, ticker: ticker || '', market, currency: cur, quantity, price };
   },
 
-  recordSell({ name, ticker, market, quantity, price, date }) {
+  recordSell({ name, ticker, market, currency, quantity, price, date }) {
     if (!name) throw new Error('name is required');
-    const m = getMonth(currentMonth);
-    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
-    const mkt = market || 'KR';
+    if (!quantity || quantity <= 0) throw new Error('quantity must be > 0');
+    if (!price || price <= 0) throw new Error('price must be > 0');
+    const cur = _resolveCurrency({ market, currency });
     const totalCost = quantity * price;
-    const existing = m.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    const existing = data.holdings.find(h => (ticker && h.ticker === ticker) || h.name === name);
+    let avgPriceAtSell = null, realizedPnL = null;
     if (existing) {
+      if (existing.market !== market) throw new Error(`market mismatch: existing holding "${name}" is ${existing.market}, request is ${market}`);
+      if (existing.quantity < quantity) throw new Error(`insufficient quantity: holding has ${existing.quantity}, sell request ${quantity}`);
+      avgPriceAtSell = existing.avgPrice;
+      realizedPnL = (price - avgPriceAtSell) * quantity;
       existing.quantity -= quantity;
-      if (existing.quantity <= 0) m.holdings.splice(m.holdings.indexOf(existing), 1);
+      if (existing.quantity <= 0) data.holdings.splice(data.holdings.indexOf(existing), 1);
+    } else {
+      console.warn('[recordSell] holdings에 없는 종목 매도:', name, ticker, '— avgPriceAtSell=null');
     }
-    if (mkt === 'US') { m.cashUSD = (m.cashUSD || 0) + totalCost; } else { m.cashKRW = (m.cashKRW || 0) + totalCost; }
-    m.trades.push({ date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market: mkt, type: 'sell', quantity, price });
+    if (market === 'US') { data.cashUSD = (data.cashUSD || 0) + totalCost; }
+    else { data.cashKRW = (data.cashKRW || 0) + totalCost; }
+    const trade = { date: date || new Date().toISOString().split('T')[0], name, ticker: ticker || '', market, currency: cur, type: 'sell', quantity, price, avgPriceAtSell, realizedPnL };
+    data.trades.push(trade);
     saveData(); render();
-    return { success: true, action: 'sell', name, quantity, price };
+    return { success: true, action: 'sell', name, ticker: ticker || '', market, currency: cur, quantity, price, avgPriceAtSell, realizedPnL };
   },
 
-  addHolding({ name, ticker, market, quantity, avgPrice, currentPrice }) {
+  addHolding({ name, ticker, market, currency, quantity, avgPrice, currentPrice }) {
     if (!name) throw new Error('name is required');
-    const m = getMonth(currentMonth);
-    m.holdings.push({ name, ticker: ticker || '', market: market || 'KR', quantity: quantity || 0, avgPrice: avgPrice || 0, currentPrice: currentPrice || 0, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
+    const cur = _resolveCurrency({ market, currency });
+    data.holdings.push({ name, ticker: ticker || '', market, currency: cur, quantity: quantity || 0, avgPrice: avgPrice || 0, currentPrice: currentPrice || 0, investmentThesis: '', risk: '', targetWeight: 0, attractScore: 0 });
     saveData(); render();
-    return { success: true, name };
+    return { success: true, name, market, currency: cur };
   },
 
   removeHolding(nameOrTicker) {
-    const m = getMonth(currentMonth);
-    const idx = m.holdings.findIndex(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    const idx = data.holdings.findIndex(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
     if (idx === -1) return { success: false, error: 'not found' };
-    m.holdings.splice(idx, 1);
+    data.holdings.splice(idx, 1);
     saveData(); render();
     return { success: true, removed: nameOrTicker };
   },
 
   updatePrice(ticker, newPrice, force = false) {
-    const m = getMonth(currentMonth);
-    const h = m.holdings.find(h => h.ticker === ticker || h.name === ticker);
+    const h = data.holdings.find(h => h.ticker === ticker || h.name === ticker);
     if (!h) return { success: false, error: 'not found' };
     const oldPrice = h.currentPrice;
     if (!force && oldPrice > 0 && Math.abs(newPrice - oldPrice) / oldPrice > 0.7) {
@@ -2457,17 +2762,14 @@ window.KR_CAPITAL_API = {
   },
 
   setCash({ krw, usd }) {
-    const m = getMonth(currentMonth);
-    if (krw !== undefined) m.cashKRW = krw;
-    if (usd !== undefined) m.cashUSD = usd;
-    if (m.cash !== undefined) delete m.cash;
+    if (krw !== undefined) data.cashKRW = krw;
+    if (usd !== undefined) data.cashUSD = usd;
     saveData(); render();
-    return { success: true, cashKRW: m.cashKRW, cashUSD: m.cashUSD };
+    return { success: true, cashKRW: data.cashKRW, cashUSD: data.cashUSD };
   },
 
   setTargetWeight(nameOrTicker, pct) {
-    const m = getMonth(currentMonth);
-    const h = m.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    const h = data.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
     if (!h) return { success: false, error: 'not found' };
     h.targetWeight = pct;
     saveData(); render();
@@ -2475,8 +2777,7 @@ window.KR_CAPITAL_API = {
   },
 
   setAttractScore(nameOrTicker, score) {
-    const m = getMonth(currentMonth);
-    const h = m.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
+    const h = data.holdings.find(h => h.name === nameOrTicker || h.ticker === nameOrTicker);
     if (!h) return { success: false, error: 'not found' };
     h.attractScore = Math.max(1, Math.min(10, score));
     saveData(); render();
@@ -2493,25 +2794,27 @@ window.KR_CAPITAL_API = {
     return { success: true, fxRate: rate };
   },
 
-  // 출자/회수 기록
-  recordDeposit({ amount, date, reason }) {
+  // 출자/회수 기록 (기본 currency='KRW'. USD 출자 시 currency: 'USD' 명시)
+  recordDeposit({ amount, currency, date, reason }) {
     if (!amount || amount <= 0) throw new Error('amount must be positive');
-    const m = getMonth(currentMonth);
-    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
-    m.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: amount, reason: reason || '' });
-    m.cashKRW = (m.cashKRW || 0) + amount;
+    const cur = currency || 'KRW';
+    if (cur !== 'KRW' && cur !== 'USD') throw new Error(`invalid currency: ${cur}`);
+    data.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: amount, currency: cur, reason: reason || '' });
+    if (cur === 'USD') data.cashUSD = (data.cashUSD || 0) + amount;
+    else data.cashKRW = (data.cashKRW || 0) + amount;
     saveData(); render();
-    return { success: true, action: 'deposit', amount, cashKRW: m.cashKRW };
+    return { success: true, action: 'deposit', amount, currency: cur };
   },
 
-  recordWithdrawal({ amount, date, reason }) {
+  recordWithdrawal({ amount, currency, date, reason }) {
     if (!amount || amount <= 0) throw new Error('amount must be positive');
-    const m = getMonth(currentMonth);
-    if (m.cash !== undefined && m.cashKRW === undefined) { m.cashKRW = m.cash; m.cashUSD = 0; delete m.cash; }
-    m.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: -amount, reason: reason || '' });
-    m.cashKRW = (m.cashKRW || 0) - amount;
+    const cur = currency || 'KRW';
+    if (cur !== 'KRW' && cur !== 'USD') throw new Error(`invalid currency: ${cur}`);
+    data.capitalFlows.push({ date: date || new Date().toISOString().split('T')[0], amount: -amount, currency: cur, reason: reason || '' });
+    if (cur === 'USD') data.cashUSD = (data.cashUSD || 0) - amount;
+    else data.cashKRW = (data.cashKRW || 0) - amount;
     saveData(); render();
-    return { success: true, action: 'withdrawal', amount, cashKRW: m.cashKRW };
+    return { success: true, action: 'withdrawal', amount, currency: cur };
   },
 
   exportData() { return JSON.parse(JSON.stringify(data)); },
