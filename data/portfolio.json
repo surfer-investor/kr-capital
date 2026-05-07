@@ -25,16 +25,6 @@
           "risk": ""
         },
         {
-          "name": "Applied Optoelectronics",
-          "ticker": "AAOI",
-          "market": "US",
-          "quantity": 1,
-          "avgPrice": 175,
-          "currentPrice": 163.95,
-          "investmentThesis": "",
-          "risk": ""
-        },
-        {
           "name": "LLYX",
           "ticker": "LLYX",
           "market": "US",
@@ -231,6 +221,16 @@
           "quantity": 8,
           "price": 77000.0,
           "reason": "사후 기록"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "Applied Optoelectronics",
+          "ticker": "AAOI",
+          "market": "US",
+          "type": "sell",
+          "quantity": 1,
+          "price": 176.81,
+          "reason": "사후 기록"
         }
       ],
       "capitalFlows": [
@@ -249,7 +249,7 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 808384.0,
-      "cashUSD": 429.55
+      "cashUSD": 606.36
     }
   },
   "lastModified": 1778161556783
