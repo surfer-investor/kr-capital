@@ -9,7 +9,7 @@
         },
         {
           "date": "2026-05-07",
-          "totalAsset": 5486236,
+          "totalAsset": 5490338,
           "note": "자동 업데이트"
         }
       ],
@@ -30,7 +30,7 @@
           "market": "US",
           "quantity": 1,
           "avgPrice": 175,
-          "currentPrice": 178.54,
+          "currentPrice": 163.95,
           "investmentThesis": "",
           "risk": ""
         },
@@ -252,5 +252,5 @@
       "cashUSD": 429.55
     }
   },
-  "lastModified": 1778161538792
+  "lastModified": 1778161556783
 }
