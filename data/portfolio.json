@@ -15,16 +15,6 @@
       ],
       "holdings": [
         {
-          "name": "Venture Global",
-          "ticker": "VG",
-          "market": "US",
-          "quantity": 6,
-          "avgPrice": 13.15,
-          "currentPrice": 12,
-          "investmentThesis": "",
-          "risk": ""
-        },
-        {
           "name": "LLYX",
           "ticker": "LLYX",
           "market": "US",
@@ -241,6 +231,16 @@
           "quantity": 6,
           "price": 12.04,
           "reason": "사후 기록"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "Venture Global",
+          "ticker": "VG",
+          "market": "US",
+          "type": "sell",
+          "quantity": 6,
+          "price": 11.88,
+          "reason": "사후 기록"
         }
       ],
       "capitalFlows": [
@@ -259,7 +259,7 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 808384.0,
-      "cashUSD": 678.6
+      "cashUSD": 749.88
     }
   },
   "lastModified": 1778161556783
