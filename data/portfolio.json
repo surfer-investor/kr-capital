@@ -38,7 +38,7 @@
           "name": "LLYX",
           "ticker": "LLYX",
           "market": "US",
-          "quantity": 13,
+          "quantity": 26,
           "avgPrice": 18.02,
           "currentPrice": 19.35,
           "investmentThesis": "",
@@ -251,6 +251,16 @@
           "quantity": 1,
           "price": 175.0,
           "reason": "필승 써글"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "LLYX",
+          "ticker": "LLYX",
+          "market": "US",
+          "type": "buy",
+          "quantity": 13,
+          "price": 18.02,
+          "reason": "필승 써글"
         }
       ],
       "capitalFlows": [
@@ -269,7 +279,7 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 192384,
-      "cashUSD": 96.75
+      "cashUSD": -137.51
     }
   },
   "lastModified": 1778154863125
