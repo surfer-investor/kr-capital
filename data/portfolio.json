@@ -18,7 +18,7 @@
           "name": "Venture Global",
           "ticker": "VG",
           "market": "US",
-          "quantity": 12,
+          "quantity": 24,
           "avgPrice": 13.15,
           "currentPrice": 12,
           "investmentThesis": "",
@@ -231,6 +231,16 @@
           "quantity": 1,
           "price": 652000,
           "reason": "차익 실현 (사후 기록)"
+        },
+        {
+          "date": "2026-05-07",
+          "name": "Venture Global",
+          "ticker": "VG",
+          "market": "US",
+          "type": "buy",
+          "quantity": 12,
+          "price": 13.15,
+          "reason": "필승 써글"
         }
       ],
       "capitalFlows": [
@@ -249,7 +259,7 @@
       "reflection": "",
       "nextMonthPlan": "",
       "cashKRW": 192384,
-      "cashUSD": 429.55
+      "cashUSD": 271.75
     }
   },
   "lastModified": 1778154863125
