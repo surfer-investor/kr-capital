@@ -333,14 +333,22 @@
         {
           "name": "KODEX 로봇액티브",
           "ticker": "069500.KQ",
-          "market": "KR",
+          "market": "KQ",
           "quantity": 5,
-          "avgPrice": 38925,
-          "currentPrice": 38925,
-          "targetWeight": 0,
-          "attractScore": 0,
-          "tp": 0,
-          "sl": 0
+          "avgPrice": 38925.0,
+          "currentPrice": 0,
+          "investmentThesis": "",
+          "risk": ""
+        },
+        {
+          "name": "LLYX",
+          "ticker": "LLYX",
+          "market": "US",
+          "quantity": 0,
+          "avgPrice": 18.37,
+          "currentPrice": 0,
+          "investmentThesis": "",
+          "risk": ""
         }
       ],
       "cashKRW": -194625,
