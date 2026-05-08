@@ -347,6 +347,16 @@
           "quantity": 0,
           "price": 18.37,
           "reason": "포지션 정리"
+        },
+        {
+          "date": "2026-05-08",
+          "name": "LLYX",
+          "ticker": "매도",
+          "market": "US",
+          "type": "LLYX",
+          "quantity": 0,
+          "price": 13.0,
+          "reason": "2026-05-08"
         }
       ],
       "holdings": [
