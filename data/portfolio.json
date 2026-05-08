@@ -367,6 +367,16 @@
           "quantity": 5,
           "price": 38925.0,
           "reason": "사후 기록"
+        },
+        {
+          "date": "2026-05-08",
+          "name": "LLYX",
+          "ticker": "LLYX",
+          "market": "US",
+          "type": "sell",
+          "quantity": 13,
+          "price": 18.37,
+          "reason": "사후 기록"
         }
       ],
       "holdings": [
@@ -379,20 +389,10 @@
           "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
-        },
-        {
-          "name": "LLYX",
-          "ticker": "LLYX",
-          "market": "US",
-          "quantity": 0,
-          "avgPrice": 18.37,
-          "currentPrice": 0,
-          "investmentThesis": "",
-          "risk": ""
         }
       ],
       "cashKRW": -389250.0,
-      "cashUSD": 238.81
+      "cashUSD": 477.62
     }
   },
   "lastModified": 1778248931867
