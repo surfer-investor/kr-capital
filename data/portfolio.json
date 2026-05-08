@@ -327,6 +327,16 @@
           "quantity": 13,
           "price": 18.37,
           "reason": "사후 기록"
+        },
+        {
+          "date": "2026-05-08",
+          "name": "KODEX 로봇액티브",
+          "ticker": "069500.KQ",
+          "market": "KR",
+          "type": "매도",
+          "quantity": 5,
+          "price": 38925.0,
+          "reason": "포지션 정리"
         }
       ],
       "holdings": [
