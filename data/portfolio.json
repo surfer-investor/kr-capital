@@ -315,7 +315,7 @@
           "market": "KR",
           "type": "buy",
           "quantity": 5,
-          "price": 38925.0,
+          "price": 38925,
           "reason": "사후 기록"
         },
         {
@@ -335,17 +335,17 @@
           "ticker": "069500.KQ",
           "market": "KR",
           "quantity": 5,
-          "avgPrice": 38925.0,
-          "currentPrice": 38925.0,
+          "avgPrice": 38925,
+          "currentPrice": 38925,
           "targetWeight": 0,
           "attractScore": 0,
           "tp": 0,
           "sl": 0
         }
       ],
-      "cashKRW": -194625.0,
+      "cashKRW": -194625,
       "cashUSD": 238.81
     }
   },
-  "lastModified": 1778225134853
+  "lastModified": 1778248516066
 }
