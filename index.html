@@ -2160,6 +2160,55 @@ const KR_STOCKS = KR_STOCKS_RAW.map(([code,name]) => ({ symbol: code+'.KS', shor
 let searchDebounce = null;
 const hasKorean = (s) => /[가-힣]/.test(s);
 
+async function yahooQuoteSearch(query) {
+  const su1 = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+  const su2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
+  const okSearch = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
+
+  let results = null;
+  try {
+    results = await Promise.any([
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(su1), 8000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch),
+      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(su2), 8000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch),
+      fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(su1), 10000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(w => okSearch(JSON.parse(w.contents))),
+      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(su1), 8000)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch)
+    ]);
+  } catch(e) {}
+
+  // Search endpoint이 죽었거나 0건일 때, 쿼리가 ticker 패턴이면 chart endpoint으로 fallback.
+  // 다른 endpoint이라 가용성이 독립적이고, LLYX처럼 사용자가 정확한 ticker를 친 케이스를 살린다.
+  if (!results && /^[A-Za-z][A-Za-z0-9.\-]{0,9}$/.test(query)) {
+    const cu1 = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(query)}`;
+    const cu2 = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(query)}`;
+    const okChart = json => {
+      const meta = json?.chart?.result?.[0]?.meta;
+      if (!meta?.symbol || meta.instrumentType === 'MUTUALFUND') throw new Error();
+      return [{
+        symbol: meta.symbol,
+        shortname: meta.shortName || meta.longName || meta.symbol,
+        longname: meta.longName || meta.shortName || meta.symbol,
+        exchange: meta.exchangeName || '',
+        quoteType: meta.instrumentType || ''
+      }];
+    };
+    try {
+      results = await Promise.any([
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(cu1), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okChart),
+        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(cu2), 8000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okChart),
+        fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(cu1), 10000)
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(w => okChart(JSON.parse(w.contents)))
+      ]);
+    } catch(e) {}
+  }
+  return results;
+}
+
 function onStockSearch(query) {
   clearTimeout(searchDebounce);
   const box = document.getElementById('searchResults');
@@ -2181,27 +2230,9 @@ async function searchStocks(query) {
       s.symbol.includes(q)
     ).slice(0, 10);
   } else {
-    // 영어/숫자 → Yahoo API (병렬 프록시 레이스)
+    // 영어/숫자 → Yahoo search → (실패 시) chart endpoint fallback
     box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 중...</div>';
-    const url1 = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
-    const url2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
-    const ok = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
-    try {
-      results = await Promise.any([
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url1), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j)),
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url2), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j)),
-        fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(w => ok(JSON.parse(w.contents))),
-        fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url1), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j))
-      ]);
-    } catch(e) { results = null; }
+    results = await yahooQuoteSearch(query);
   }
 
   if (!results || !results.length) {
@@ -2272,25 +2303,7 @@ async function searchTradeStocks(query) {
     ).slice(0, 10);
   } else {
     box.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:12px">검색 중...</div>';
-    const url1 = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
-    const url2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
-    const ok = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
-    try {
-      results = await Promise.any([
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url1), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j)),
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url2), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j)),
-        fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(url1), 10000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(w => ok(JSON.parse(w.contents))),
-        fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url1), 8000)
-          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-          .then(j => ok(j))
-      ]);
-    } catch(e) { results = null; }
+    results = await yahooQuoteSearch(query);
   }
 
   if (!results || !results.length) {
