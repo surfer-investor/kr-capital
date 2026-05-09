@@ -2165,17 +2165,16 @@ async function yahooQuoteSearch(query) {
   const su2 = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en&region=US&quotesCount=8&newsCount=0`;
   const okSearch = json => { if (!json?.quotes?.length) throw new Error(); return json.quotes; };
 
+  // 2026-05 측정: corsproxy.io ~670ms로 안정적, allorigins/get ~3s 백업, allorigins/raw·codetabs는 죽음(CORS차단/rate-limit).
   let results = null;
   try {
     results = await Promise.any([
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(su1), 8000)
+      fetchWithTimeout('https://corsproxy.io/?' + encodeURIComponent(su1), 8000)
         .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch),
-      fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(su2), 8000)
+      fetchWithTimeout('https://corsproxy.io/?' + encodeURIComponent(su2), 8000)
         .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch),
       fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(su1), 10000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(w => okSearch(JSON.parse(w.contents))),
-      fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(su1), 8000)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okSearch)
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(w => okSearch(JSON.parse(w.contents)))
     ]);
   } catch(e) {}
 
@@ -2197,9 +2196,9 @@ async function yahooQuoteSearch(query) {
     };
     try {
       results = await Promise.any([
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(cu1), 8000)
+        fetchWithTimeout('https://corsproxy.io/?' + encodeURIComponent(cu1), 8000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okChart),
-        fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(cu2), 8000)
+        fetchWithTimeout('https://corsproxy.io/?' + encodeURIComponent(cu2), 8000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(okChart),
         fetchWithTimeout('https://api.allorigins.win/get?url=' + encodeURIComponent(cu1), 10000)
           .then(r => { if (!r.ok) throw new Error(); return r.json(); }).then(w => okChart(JSON.parse(w.contents)))
