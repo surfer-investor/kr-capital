@@ -49,8 +49,8 @@
       "name": "KODEX 로봇액티브",
       "ticker": "445290.KS",
       "market": "KR",
-      "quantity": 14,
-      "avgPrice": 34996,
+      "quantity": 19,
+      "avgPrice": 36029.94736842105,
       "currentPrice": 38700,
       "investmentThesis": "",
       "risk": "",
@@ -267,6 +267,16 @@
       "currency": "USD",
       "avgPriceAtSell": null,
       "realizedPnL": null
+    },
+    {
+      "date": "2026-05-10",
+      "name": "KODEX Robot Active",
+      "ticker": "445290.KS",
+      "market": "KR",
+      "currency": "KRW",
+      "type": "buy",
+      "quantity": 5,
+      "price": 38925
     }
   ],
   "capitalFlows": [
@@ -300,7 +310,7 @@
       "note": "자동 업데이트"
     }
   ],
-  "cashKRW": 808384,
+  "cashKRW": 613759,
   "cashUSD": 749.88,
   "months": {
     "2026-05": {
@@ -335,7 +345,7 @@
           "market": "KR",
           "type": "매도",
           "quantity": 5,
-          "price": 38925.0,
+          "price": 38925,
           "reason": "포지션 정리"
         },
         {
@@ -355,7 +365,7 @@
           "market": "US",
           "type": "LLYX",
           "quantity": 0,
-          "price": 13.0,
+          "price": 13,
           "reason": "2026-05-08"
         },
         {
@@ -365,7 +375,7 @@
           "market": "KR",
           "type": "buy",
           "quantity": 5,
-          "price": 38925.0,
+          "price": 38925,
           "reason": "사후 기록"
         },
         {
@@ -385,15 +395,15 @@
           "ticker": "069500.KQ",
           "market": "KQ",
           "quantity": 10,
-          "avgPrice": 38925.0,
+          "avgPrice": 38925,
           "currentPrice": 0,
           "investmentThesis": "",
           "risk": ""
         }
       ],
-      "cashKRW": -389250.0,
+      "cashKRW": -389250,
       "cashUSD": 477.62
     }
   },
-  "lastModified": 1778248931867
+  "lastModified": 1778453518281
 }
