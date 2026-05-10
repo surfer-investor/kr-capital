@@ -2,17 +2,6 @@
   "schemaVersion": 2,
   "holdings": [
     {
-      "name": "LLYX",
-      "ticker": "LLYX",
-      "market": "US",
-      "quantity": 13,
-      "avgPrice": 18.02,
-      "currentPrice": 18.85,
-      "investmentThesis": "",
-      "risk": "",
-      "currency": "USD"
-    },
-    {
       "name": "이수스페셜티케미컬",
       "ticker": "457190.KS",
       "market": "KR",
@@ -277,6 +266,18 @@
       "type": "buy",
       "quantity": 5,
       "price": 38925
+    },
+    {
+      "date": "2026-05-10",
+      "name": "Defiance Daily Target 2X Long L",
+      "ticker": "LLYX",
+      "market": "US",
+      "currency": "USD",
+      "type": "sell",
+      "quantity": 13,
+      "price": 18.37,
+      "avgPriceAtSell": 18.02,
+      "realizedPnL": 4.5500000000000185
     }
   ],
   "capitalFlows": [
@@ -311,7 +312,7 @@
     }
   ],
   "cashKRW": 613759,
-  "cashUSD": 749.88,
+  "cashUSD": 988.69,
   "months": {
     "2026-05": {
       "operationNote": "4월 펀드는 +310,828원으로 마무리했습니다. 월초에 '추세추종 돌파 전략'+ 필승 픽(이차전지) 로 접근한 상신이디피(+238905원)이 펀드의 수익을 이끌었습니다.\n\n<해외주식 -4,353원 (2.0%)>\n * 센시언트 테크놀로지스: +10,885원 (6.7%)/* 깅코 바이오웍스 홀딩스: -845원 (8.1%)/ * CCUP: -5,062원 (18.6%)/ * BMNU: -9,331원 (76.3%)\n<국내주식 +296987원 (9.2%)>\n * 상신이디피: +238,905원 (27.0%)/ * 휴스틸: +99,540원 (20.3%)/ * 에스티아이: +22,887원 (9.8%)/ * 이수스페셜티케미컬: +7,536원 (3.5%)/ * KODEX 머니마켓액티브: +248원 (0.07%)\n * 우양에이치씨: +82원 (0.6%)/ * 코스모신소재: -6,918원 (10.3%)\n * RFHIC: -23,953원 (7.9%) * 두산에너빌리티: -41,340원 (5.7%)\n",
@@ -405,5 +406,5 @@
       "cashUSD": 477.62
     }
   },
-  "lastModified": 1778453518281
+  "lastModified": 1778453552414
 }
