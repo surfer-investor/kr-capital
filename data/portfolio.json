@@ -309,6 +309,11 @@
       "date": "2026-05-08",
       "totalAsset": 5384805,
       "note": "자동 업데이트"
+    },
+    {
+      "date": "2026-05-10",
+      "totalAsset": 5373017,
+      "note": ""
     }
   ],
   "cashKRW": 611931,
@@ -406,5 +411,5 @@
       "cashUSD": 477.62
     }
   },
-  "lastModified": 1778453905321
+  "lastModified": 1778453913781
 }
