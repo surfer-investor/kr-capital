@@ -408,7 +408,14 @@
         }
       ],
       "cashKRW": -389250,
-      "cashUSD": 477.62
+      "cashUSD": 477.62,
+      "assetHistory": [
+        {
+          "date": "2026-05-11",
+          "totalAsset": 1487915.6,
+          "note": "자동 업데이트"
+        }
+      ]
     }
   },
   "lastModified": 1778453913781
