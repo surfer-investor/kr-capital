@@ -7,7 +7,7 @@
       "market": "KR",
       "quantity": 3,
       "avgPrice": 120425,
-      "currentPrice": 115000,
+      "currentPrice": 106500,
       "investmentThesis": "",
       "risk": "",
       "currency": "KRW"
@@ -29,7 +29,7 @@
       "market": "KR",
       "quantity": 11,
       "avgPrice": 55800,
-      "currentPrice": 54800,
+      "currentPrice": 48300,
       "investmentThesis": "",
       "risk": "",
       "currency": "KRW"
@@ -40,7 +40,7 @@
       "market": "KR",
       "quantity": 19,
       "avgPrice": 36029.94736842105,
-      "currentPrice": 38700,
+      "currentPrice": 42140,
       "investmentThesis": "",
       "risk": "",
       "currency": "KRW"
@@ -320,6 +320,11 @@
       "date": "2026-05-10",
       "totalAsset": 5373017,
       "note": ""
+    },
+    {
+      "date": "2026-05-13",
+      "totalAsset": 5341377,
+      "note": "자동 업데이트"
     }
   ],
   "cashKRW": 611931,
@@ -429,5 +434,5 @@
       ]
     }
   },
-  "lastModified": 1778687201873
+  "lastModified": 1778687368701
 }
