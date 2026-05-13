@@ -292,6 +292,12 @@
       "amount": -100000,
       "reason": "회수",
       "currency": "KRW"
+    },
+    {
+      "date": "2026-05-13",
+      "amount": 40000,
+      "currency": "KRW",
+      "reason": ""
     }
   ],
   "assetHistory": [
@@ -402,7 +408,7 @@
           "market": "KQ",
           "quantity": 10,
           "avgPrice": 38925,
-          "currentPrice": 119100.0,
+          "currentPrice": 119100,
           "investmentThesis": "",
           "risk": ""
         }
@@ -423,5 +429,5 @@
       ]
     }
   },
-  "lastModified": 1778453913781
+  "lastModified": 1778687201873
 }
