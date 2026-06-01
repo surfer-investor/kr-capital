@@ -462,6 +462,20 @@
           "note": "자동 업데이트"
         }
       ]
+    },
+    "2026-06": {
+      "assetHistory": [
+        {
+          "date": "2026-06-01",
+          "totalAsset": 1413950,
+          "note": "자동 업데이트"
+        }
+      ],
+      "holdings": [],
+      "trades": [],
+      "capitalFlows": [],
+      "cashKRW": 0,
+      "cashUSD": 0
     }
   },
   "lastModified": 1778716356136
